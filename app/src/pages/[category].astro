@@ -1,0 +1,174 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import ArticleCard from '@/components/ArticleCard.astro';
+import { buildJsonLd } from '@/lib/seo';
+
+const { category } = Astro.params;
+
+// Category definitions
+const categoryMap: Record<string, { name: string; description: string }> = {
+  farandula: {
+    name: 'Farándula',
+    description: 'Las últimas noticias de farándula, celebridades y entretenimiento en República Dominicana y el mundo.',
+  },
+  reality: {
+    name: 'Reality',
+    description: 'Cobertura exclusiva de los reality shows más vistos: Planeta Alofoke, La Casa de Alofoke y más.',
+  },
+  musica: {
+    name: 'Música',
+    description: 'Noticias de música urbana, reggaetón, dembow, bachata y los artistas más populares del momento.',
+  },
+  deportes: {
+    name: 'Deportes',
+    description: 'Lo último del deporte dominicano e internacional: béisbol, baloncesto, fútbol y más.',
+  },
+  viral: {
+    name: 'Viral',
+    description: 'Los videos, memes y momentos más virales de las redes sociales en República Dominicana.',
+  },
+  tv: {
+    name: 'TV',
+    description: 'Noticias de televisión, programas, series y las novedades de la pantalla dominicana.',
+  },
+  opinion: {
+    name: 'Opinión',
+    description: 'Columnas de opinión y análisis sobre el entretenimiento y la cultura dominicana.',
+  },
+};
+
+const cat = categoryMap[category || ''];
+
+if (!cat) {
+  return Astro.redirect('/');
+}
+
+const siteUrl = import.meta.env.SITE || 'https://eliminados.online';
+
+const seo = {
+  title: `${cat.name} — ELIMINADOS | Noticias de Entretenimiento`,
+  description: cat.description,
+  canonicalUrl: `${siteUrl}/${category}/`,
+  type: 'website' as const,
+};
+
+const jsonLd = buildJsonLd({
+  type: 'WebSite',
+  title: seo.title,
+  description: seo.description,
+  url: seo.canonicalUrl,
+  siteName: 'ELIMINADOS',
+  siteUrl,
+  breadcrumbs: [
+    { name: 'Inicio', url: siteUrl },
+    { name: cat.name, url: `${siteUrl}/${category}/` },
+  ],
+});
+
+// TODO: In production, query DB for articles in this category
+// For now, placeholder cards
+const placeholderCards = [
+  {
+    title: `Última hora en ${cat.name}: Lo que nadie te ha contado`,
+    excerpt: 'Descubre los detalles exclusivos que nadie más tiene. La información más relevante del momento.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC6HCuSZGvOBvnZN6pTp9Mi4B01lO7DB6U-DOY5ed5V5aJn8fV2Dt1Cq6LaTZRrpO7EQITtF8IbjSYyiCNJe1b8zkUYey44UxrKj93KtufequciXOBrTexSlLRluvgIHu490tnfL8txDJH7BgNhF_8Y9Th8XzFlMQlUwlz2vXdRB-O2JEViVwanyX6tZLvFE8tiFPivpFGWV4Q6cIBLZaYyEmCBQsnfJZUWMEFQCYbxRg5_nYJaStVDtQac7ut-FdAD2PPkAPk9mQ',
+    imageAlt: `Noticias de ${cat.name}`,
+    href: '#',
+  },
+  {
+    title: `Top 5: Lo más impactante de la semana en ${cat.name}`,
+    excerpt: 'Un resumen con lo mejor y lo más controversial de los últimos siete días.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC3_etRDDEMcPB1RnVbdDPPtL2yhd9DI1Iw2a2boiDUkwUVERnWyTiEvEdvmwO7BqimGfmyeuaoEeFWcuQyBGs0LCQdiVey0mqxoJ8wmJbRehjPoOcLoiqOO4fTR9JV8lLkgxBVjWydQNFibrAcwfUsUqoI_t4RFZ-9HHjdLXK9m8HMWBSnYMKzAmdqkCfHzIa3G0FOv_HBMTz141IA-1LwTg-69uERMCgpePXEuO2c6HIcQttlg1ioe6oF1A8ezC9feTjSe3jDdg',
+    imageAlt: `Lo más impactante en ${cat.name}`,
+    href: '#',
+  },
+  {
+    title: `Entrevista exclusiva: Las confesiones que estremecen ${cat.name}`,
+    excerpt: 'Una conversación sin censura con las figuras más polémicas del momento.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDEYMjWJ6EHNyEhBsysn4JJlq0IHAHrADkBZ2CB8Mc8NDekXd3Sdh7l5w4tH3f5oF58Mcgs6XBl94HfWrYdMleHNluKT_HWbxMt7ZITNC-6qjo3QqLIkL2Eou3KvgBhfAjHJ7lAuFpKutgTW3Ahu_Ji7VH3eX8oa2xPWBBZMixGi6qLrtf2We65cXel5_NCLscyAldvO5GgK1bH1ECT5jqnrbSqIzibnMzKbXxF4qo8_0Xn5On711UdPkYxBtdczz1nJRwdm4VJSQ',
+    imageAlt: `Entrevista exclusiva de ${cat.name}`,
+    href: '#',
+  },
+];
+---
+
+<BaseLayout seo={seo} jsonLd={jsonLd}>
+  <main class="container-site" style="margin-bottom: 5rem; padding-top: 2rem;">
+
+    <!-- Breadcrumb -->
+    <nav style="
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.625rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: var(--color-on-surface-variant);
+    ">
+      <a href="/" style="text-decoration: none; color: inherit;">INICIO</a>
+      <span class="material-symbols-outlined" style="font-size: 10px;">chevron_right</span>
+      <span style="color: var(--color-on-surface);">{cat.name.toUpperCase()}</span>
+    </nav>
+
+    <!-- Section Header -->
+    <div class="newspaper-spine" style="padding-left: 1.5rem; margin-bottom: 2.5rem;">
+      <h1 class="font-headline" style="
+        font-size: clamp(2.5rem, 5vw, 4rem);
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: -0.05em;
+        color: var(--color-primary);
+        line-height: 1;
+      ">
+        {cat.name}
+      </h1>
+      <p style="
+        color: var(--color-on-surface-variant);
+        font-size: 1.125rem;
+        margin-top: 0.75rem;
+        max-width: 40rem;
+      ">
+        {cat.description}
+      </p>
+    </div>
+
+    <!-- Articles Grid -->
+    <div style="
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 2rem;
+      margin-bottom: 3rem;
+    ">
+      {placeholderCards.map((card) => (
+        <ArticleCard
+          title={card.title}
+          excerpt={card.excerpt}
+          image={card.image}
+          imageAlt={card.imageAlt}
+          category={cat.name.toUpperCase()}
+          href={card.href}
+        />
+      ))}
+    </div>
+
+    <!-- Empty state message -->
+    <div style="
+      text-align: center;
+      padding: 3rem 1rem;
+      border: 2px dashed var(--color-outline-variant);
+      border-radius: 0.5rem;
+      color: var(--color-on-surface-variant);
+    ">
+      <span class="material-symbols-outlined" style="font-size: 3rem; opacity: 0.4;">article</span>
+      <p class="font-headline" style="font-weight: 700; margin-top: 1rem;">
+        Más artículos próximamente
+      </p>
+      <p style="font-size: 0.875rem; margin-top: 0.5rem;">
+        Los artículos publicados en esta categoría aparecerán aquí automáticamente.
+      </p>
+    </div>
+
+  </main>
+</BaseLayout>

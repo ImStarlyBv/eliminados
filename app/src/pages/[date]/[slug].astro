@@ -1,0 +1,405 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import TrendingSidebar from '@/components/TrendingSidebar.astro';
+import { buildJsonLd } from '@/lib/seo';
+
+// Route: /[date]/[slug].html  e.g. /20260416/laura-planeta-alofoke_9f2ab3.html
+const { date, slug } = Astro.params;
+const siteUrl = import.meta.env.SITE || 'https://eliminados.online';
+
+// TODO: Query DB for article by slug
+// For now, show a placeholder article for demonstration
+const article = {
+  title: 'Estos son los 23 participantes de Planeta Alofoke 2: Laura Sahar y Pamela Infante encabezan la lista',
+  h1: 'Estos son los 23 participantes de Planeta Alofoke 2: Laura Sahar y Pamela Infante encabezan la lista',
+  metaDescription: 'Alofoke Radio Show reveló la lista oficial de los 23 participantes de Planeta Alofoke 2. Laura Sahar y Pamela Infante lideran el elenco.',
+  ogImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBv1hq9KGy7TpQoDCCs_GHzj287miXUrWBsei-MSvidAAWjTzqawrRC25TfSWpksfj2Zha6j6xkhoQGdLP0coPnVPGQj3s4WpTDqgoxC5yoDfp_SuqYN-ZuxVKpnroIoRIrhrMjv-5JMKWIbf9ZTCIcVatbo_6B4x2FgxRtBJqtZkUEVLkUA4heJ7FmWxPdsgruWh_vT2-lHSr6gUnGn_ZRhD5WSwBrOvgW6BvEMO1QQnnnW4DHlCwzW9sgEIrIwnRcNh5KTRWFBQ',
+  bodyHtml: `
+    <p>El fenómeno que paralizó el internet el año pasado está de vuelta. Santiago Matías "Alofoke" confirmó esta tarde a través de su plataforma los nombres de los 23 elegidos que convivirán en la mansión de Planeta Alofoke 2.</p>
+
+    <h2>Laura Sahar: El regreso más esperado</h2>
+    <p>La influencer Laura Sahar, conocida por su fuerte personalidad en las plataformas digitales, fue la primera en ser confirmada. Tras meses de especulaciones, su participación asegura que el drama y la autenticidad estarán presentes desde el día uno. "Vengo a ganar, no a hacer amigos", declaró brevemente en sus redes sociales.</p>
+
+    <blockquote>
+      <p>"Esta temporada no se trata solo de convivencia, se trata de ver quién tiene la piel más dura en la era digital."</p>
+      <cite>— Santiago Matías</cite>
+    </blockquote>
+
+    <h2>Pamela Infante y el bloque de los influencers</h2>
+    <p>Acompañando a Sahar, Pamela Infante se une al elenco, trayendo consigo a una comunidad de más de 3 millones de seguidores. Su ingreso marca un punto de inflexión en la competencia, ya que su estrategia suele ser más cerebral que impulsiva.</p>
+
+    <h2>Los 23 Confirmados</h2>
+    <ul>
+      <li>1. Laura Sahar</li>
+      <li>2. Pamela Infante</li>
+      <li>3. El Tio</li>
+      <li>4. La Jefa</li>
+      <li>5. DJ Nabil</li>
+      <li>6. Caro Brito</li>
+      <li>7. Sandra Berrocal</li>
+      <li>8. Vitaly Sánchez</li>
+    </ul>
+    <p><em>Lista completa disponible en la aplicación oficial.</em></p>
+
+    <p>Las grabaciones iniciarán la próxima semana en una locación secreta al este del país. Los fanáticos podrán seguir el minuto a minuto a través de la señal exclusiva de ELIMINADOS y los canales oficiales de Alofoke Media Group.</p>
+  `,
+  publishedAt: '2026-04-16T18:00:00Z',
+  updatedAt: '2026-04-16T18:00:00Z',
+  authorName: 'Redacción ELIMINADOS',
+  authorSlug: 'redaccion-eliminados',
+  authorAvatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBzTNnhCZbmAsSaYSGfqkTDImQGYuyAKyq7RfuZFqkWBFDiZlp7kq4HaegWhqSADVLsc10da_SserCXjsk1VU6vJJryMbhEFOmA_wNSESUDkzHK1biV8eku44H7SOVnXj5wz1T4nZTL2zmKUuabORzcy7ZMAmWTetkPnFfY1iUVJpAcfBYbHA1k1l2wW8EwyR3G6FEaoD-zJ1Qm1LVI8oDKpOlMQiNkvV45VLW4rypQ_Q70BY2Uiv17tNjVSVtSnWpADnTwvZlZjg',
+  category: 'Reality',
+  categorySlug: 'reality',
+  tags: ['PlanetaAlofoke', 'RealityRD', 'Entretenimiento', 'Alofoke'],
+};
+
+const fullSlugPath = `${date}/${slug}`;
+const canonicalUrl = `${siteUrl}/${fullSlugPath}`;
+
+const seo = {
+  title: article.title,
+  description: article.metaDescription,
+  canonicalUrl,
+  ogImage: article.ogImage,
+  type: 'article' as const,
+  publishedAt: article.publishedAt,
+  updatedAt: article.updatedAt,
+  authorName: article.authorName,
+  section: article.category,
+  tags: article.tags,
+};
+
+const jsonLd = buildJsonLd({
+  type: 'NewsArticle',
+  title: article.title,
+  description: article.metaDescription,
+  url: canonicalUrl,
+  image: article.ogImage,
+  publishedAt: article.publishedAt,
+  updatedAt: article.updatedAt,
+  authorName: article.authorName,
+  section: article.category,
+  siteName: 'ELIMINADOS',
+  siteUrl,
+  breadcrumbs: [
+    { name: 'Inicio', url: siteUrl },
+    { name: article.category, url: `${siteUrl}/${article.categorySlug}/` },
+    { name: article.title.slice(0, 40) + '...', url: canonicalUrl },
+  ],
+});
+
+const trendingItems = [
+  { rank: '1', title: 'Yailin La Más Viral sorprende con nueva colaboración', category: 'MÚSICA', href: '#' },
+  { rank: '2', title: 'Clasificados a la Serie del Caribe: Lo que debes saber', category: 'DEPORTES', href: '#' },
+  { rank: '3', title: 'Premios Soberano 2024: Lista completa de nominados', category: 'FARÁNDULA', href: '#' },
+  { rank: '4', title: 'Romeo Santos anuncia última gira con Aventura', category: 'MÚSICA', href: '#' },
+  { rank: '5', title: 'Tendencias: Por qué el color rojo domina el género urbano', category: 'VIRAL', href: '#' },
+];
+
+const publishDate = new Date(article.publishedAt);
+const dateFormatter = new Intl.DateTimeFormat('es-DO', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+});
+---
+
+<BaseLayout seo={seo} jsonLd={jsonLd}>
+  <main class="container-site" style="
+    padding-top: 2rem;
+    margin-bottom: 5rem;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  " id="article-layout">
+
+    <!-- Article Column -->
+    <article style="max-width: 760px; width: 100%;">
+
+      <!-- Breadcrumb -->
+      <nav style="
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+        font-size: 0.625rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        letter-spacing: 0.15em;
+        color: var(--color-on-surface-variant);
+      ">
+        <a href="/" style="text-decoration: none; color: inherit;">INICIO</a>
+        <span class="material-symbols-outlined" style="font-size: 10px;">chevron_right</span>
+        <a href={`/${article.categorySlug}/`} style="text-decoration: none; color: inherit;">
+          {article.category.toUpperCase()}
+        </a>
+        <span class="material-symbols-outlined" style="font-size: 10px;">chevron_right</span>
+        <span style="color: var(--color-on-surface);">ARTÍCULO</span>
+      </nav>
+
+      <!-- Kicker -->
+      <div style="
+        color: var(--color-primary);
+        font-family: var(--font-headline);
+        font-weight: 900;
+        font-size: 0.75rem;
+        letter-spacing: 0.2em;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      ">
+        <span style="width: 2rem; height: 2px; background: var(--color-primary);"></span>
+        {article.category.toUpperCase()} · ELIMINADOS
+      </div>
+
+      <!-- Headline (H1) -->
+      <h1 class="font-headline" style="
+        font-size: clamp(2rem, 4vw, 3rem);
+        font-weight: 800;
+        line-height: 1.1;
+        letter-spacing: -0.025em;
+        margin-bottom: 1.5rem;
+      ">
+        {article.h1}
+      </h1>
+
+      <!-- Lede -->
+      <p style="
+        font-size: clamp(1.125rem, 2vw, 1.5rem);
+        color: var(--color-on-surface-variant);
+        line-height: 1.5;
+        margin-bottom: 2rem;
+        border-left: 4px solid var(--color-primary-container);
+        padding-left: 1.5rem;
+        font-style: italic;
+      ">
+        {article.metaDescription}
+      </p>
+
+      <!-- Byline -->
+      <div style="
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1.5rem;
+        padding: 1.5rem 0;
+        border-top: 1px solid var(--color-surface-container-highest);
+        border-bottom: 1px solid var(--color-surface-container-highest);
+        margin-bottom: 2rem;
+      ">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <div style="
+            width: 3rem;
+            height: 3rem;
+            border-radius: 9999px;
+            overflow: hidden;
+            background: var(--color-surface-container-high);
+          ">
+            <img src={article.authorAvatar} alt={article.authorName} style="width: 100%; height: 100%; object-fit: cover;" />
+          </div>
+          <div>
+            <p class="font-headline" style="font-weight: 700; font-size: 0.875rem;">
+              <a href={`/autor/${article.authorSlug}/`} style="text-decoration: none; color: inherit;">
+                {article.authorName}
+              </a>
+            </p>
+            <div style="
+              display: flex;
+              align-items: center;
+              gap: 0.5rem;
+              font-size: 0.6875rem;
+              color: var(--color-on-surface-variant);
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+            ">
+              <span style="color: var(--color-primary); font-weight: 700;">{article.category.toUpperCase()}</span>
+              <span>•</span>
+              <span>{dateFormatter.format(publishDate)}</span>
+              <span>•</span>
+              <span>5 min lectura</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Share buttons -->
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <button style="
+            width: 2.25rem; height: 2.25rem;
+            border-radius: 9999px;
+            background: #25D366; color: white;
+            border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+          ">
+            <span class="material-symbols-outlined" style="font-size: 18px;">chat</span>
+          </button>
+          <button style="
+            width: 2.25rem; height: 2.25rem;
+            border-radius: 9999px;
+            background: #1877F2; color: white;
+            border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+          ">
+            <span class="material-symbols-outlined" style="font-size: 18px;">share</span>
+          </button>
+          <button style="
+            width: 2.25rem; height: 2.25rem;
+            border-radius: 9999px;
+            background: black; color: white;
+            border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+          ">
+            <span class="material-symbols-outlined" style="font-size: 18px;">link</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Hero Image -->
+      <figure style="margin-bottom: 2.5rem;">
+        <div style="
+          aspect-ratio: 16/9;
+          overflow: hidden;
+          border-radius: 2px;
+          box-shadow: 0 20px 40px rgba(49, 46, 41, 0.06);
+        ">
+          <img
+            src={article.ogImage}
+            alt={article.title}
+            style="width: 100%; height: 100%; object-fit: cover;"
+          />
+        </div>
+        <figcaption style="
+          margin-top: 0.75rem;
+          font-size: 0.875rem;
+          color: var(--color-on-surface-variant);
+          font-style: italic;
+        ">
+          Imagen oficial de la presentación de los talentos. (Foto: ELIMINADOS/Cortesía)
+        </figcaption>
+      </figure>
+
+      <!-- Article Body -->
+      <div class="article-prose" set:html={article.bodyHtml} />
+
+      <!-- Tags -->
+      <div style="
+        margin-top: 3rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      ">
+        {article.tags.map((tag) => (
+          <a href={`/tag/${tag.toLowerCase()}/`} style="
+            background: var(--color-surface-container-highest);
+            padding: 0.375rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--color-on-surface-variant);
+            text-decoration: none;
+            transition: background 0.2s;
+          ">
+            #{tag}
+          </a>
+        ))}
+      </div>
+
+      <!-- Author Box -->
+      <div style="
+        margin-top: 4rem;
+        padding: 2rem;
+        background: var(--color-surface-container-high);
+        border-radius: 1rem;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 2rem;
+      ">
+        <div style="
+          width: 6rem; height: 6rem;
+          border-radius: 9999px;
+          overflow: hidden;
+          flex-shrink: 0;
+          box-shadow: 0 0 0 4px white;
+        ">
+          <img src={article.authorAvatar} alt={article.authorName} style="width: 100%; height: 100%; object-fit: cover;" />
+        </div>
+        <div style="flex: 1; min-width: 200px;">
+          <h5 class="font-headline" style="font-weight: 900; font-size: 1.25rem; margin-bottom: 0.5rem;">
+            {article.authorName}
+          </h5>
+          <p style="
+            color: var(--color-on-surface-variant);
+            font-size: 0.875rem;
+            line-height: 1.6;
+          ">
+            Cubrimos el latido del entretenimiento en República Dominicana.
+            Desde los estudios de radio más influyentes hasta las alfombras rojas internacionales.
+          </p>
+        </div>
+      </div>
+    </article>
+
+    <!-- Sidebar -->
+    <aside style="display: flex; flex-direction: column; gap: 3rem;">
+      <TrendingSidebar items={trendingItems} />
+
+      <!-- Newsletter Box -->
+      <div style="
+        background: var(--color-secondary-fixed);
+        padding: 2rem;
+        border-radius: 1.5rem;
+        box-shadow: 0 20px 40px rgba(49, 46, 41, 0.06);
+        position: relative;
+        overflow: hidden;
+      ">
+        <div style="position: relative; z-index: 1;">
+          <h3 class="font-headline" style="font-weight: 900; font-size: 1.5rem; margin-bottom: 0.5rem; color: #5f4200;">
+            Chisme diario en tu WhatsApp
+          </h3>
+          <p style="font-size: 0.875rem; color: rgba(95, 66, 0, 0.8); margin-bottom: 1.5rem;">
+            Recibe las exclusivas antes que nadie directamente en tu móvil.
+          </p>
+          <button style="
+            width: 100%;
+            background: var(--color-primary);
+            color: white;
+            font-family: var(--font-headline);
+            font-weight: 900;
+            padding: 1rem;
+            border-radius: 1rem;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: transform 0.15s;
+          ">
+            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">bolt</span>
+            UNIRME AHORA
+          </button>
+        </div>
+        <span class="material-symbols-outlined" style="
+          position: absolute;
+          bottom: -2.5rem;
+          right: -2.5rem;
+          font-size: 180px;
+          opacity: 0.1;
+          transform: rotate(12deg);
+          color: #5f4200;
+        ">send</span>
+      </div>
+    </aside>
+
+  </main>
+</BaseLayout>
+
+<style>
+  @media (min-width: 1024px) {
+    #article-layout {
+      grid-template-columns: 1fr 320px !important;
+    }
+  }
+</style>
