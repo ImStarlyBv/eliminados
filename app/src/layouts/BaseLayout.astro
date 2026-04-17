@@ -1,0 +1,234 @@
+---
+import type { SeoData } from '@/lib/seo';
+import Header from '@/components/Header.astro';
+import Footer from '@/components/Footer.astro';
+
+interface Props {
+  seo: SeoData;
+  jsonLd?: object[];
+}
+
+const { seo, jsonLd = [] } = Astro.props;
+const siteUrl = import.meta.env.SITE || 'http://localhost:4321';
+
+// Format today's date in Spanish
+const today = new Date();
+const dateFormatter = new Intl.DateTimeFormat('es-DO', {
+  weekday: 'long',
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+const formattedDate = dateFormatter.format(today);
+---
+
+<!DOCTYPE html>
+<html lang="es" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{seo.title}</title>
+  <meta name="description" content={seo.description} />
+  <link rel="canonical" href={seo.canonicalUrl} />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content={seo.title} />
+  <meta property="og:description" content={seo.description} />
+  <meta property="og:url" content={seo.canonicalUrl} />
+  <meta property="og:type" content={seo.type || 'website'} />
+  <meta property="og:image" content={seo.ogImage || `${siteUrl}/og-default.jpg`} />
+  <meta property="og:locale" content="es_DO" />
+  <meta property="og:site_name" content="ELIMINADOS" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content={seo.title} />
+  <meta name="twitter:description" content={seo.description} />
+  <meta name="twitter:image" content={seo.ogImage || `${siteUrl}/og-default.jpg`} />
+
+  {seo.publishedAt && <meta property="article:published_time" content={seo.publishedAt} />}
+  {seo.updatedAt && <meta property="article:modified_time" content={seo.updatedAt} />}
+  {seo.section && <meta property="article:section" content={seo.section} />}
+  {seo.tags?.map((tag) => <meta property="article:tag" content={tag} />)}
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,700;0,800;0,900;1,700;1,800;1,900&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Work+Sans:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- JSON-LD -->
+  {jsonLd.map((ld) => (
+    <script type="application/ld+json" set:html={JSON.stringify(ld)} />
+  ))}
+
+  <style is:global>
+    /* === ELIMINADOS Design System === */
+    :root {
+      /* Trópico Vibrante palette */
+      --color-primary: #b71029;
+      --color-primary-dim: #a30021;
+      --color-primary-container: #ff7576;
+      --color-secondary: #795500;
+      --color-secondary-fixed: #ffc967;
+      --color-secondary-fixed-dim: #ffb702;
+      --color-tertiary: #00675d;
+      --color-tertiary-container: #8ff8e7;
+      --color-surface: #fcf5ed;
+      --color-surface-container: #eee7de;
+      --color-surface-container-high: #e9e1d8;
+      --color-surface-container-highest: #e3dcd2;
+      --color-surface-container-low: #f7f0e7;
+      --color-on-surface: #312e29;
+      --color-on-surface-variant: #5f5b55;
+      --color-outline: #7b7670;
+      --color-outline-variant: #b2aca5;
+      --color-footer: #8A1C26;
+
+      --font-headline: 'Montserrat', 'Epilogue', sans-serif;
+      --font-body: 'DM Sans', 'Work Sans', sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--color-surface);
+      color: var(--color-on-surface);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    ::selection {
+      background: var(--color-primary-container);
+      color: #fff;
+    }
+
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+
+    /* Utility classes */
+    .font-headline { font-family: var(--font-headline); }
+    .font-body { font-family: var(--font-body); }
+
+    .tabloid-shadow {
+      box-shadow: 0 20px 40px rgba(49, 46, 41, 0.06);
+    }
+
+    .newspaper-spine {
+      border-left: 4px solid var(--color-primary);
+    }
+
+    /* Marquee animation */
+    @keyframes marquee {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    .animate-marquee {
+      animation: marquee 30s linear infinite;
+    }
+
+    /* Smooth hover scaling */
+    .hover-scale {
+      transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .hover-scale:hover {
+      transform: scale(1.05);
+    }
+
+    /* Article prose styling */
+    .article-prose h2 {
+      font-family: var(--font-headline);
+      font-weight: 700;
+      font-size: 1.5rem;
+      color: var(--color-primary);
+      margin-top: 3rem;
+      margin-bottom: 1rem;
+    }
+    .article-prose h3 {
+      font-family: var(--font-headline);
+      font-weight: 700;
+      font-size: 1.25rem;
+      margin-top: 2rem;
+      margin-bottom: 0.75rem;
+    }
+    .article-prose p {
+      font-size: 1.125rem;
+      line-height: 1.8;
+      margin-bottom: 1.5rem;
+    }
+    .article-prose blockquote {
+      background: var(--color-surface-container-highest);
+      padding: 2rem;
+      border-left: 4px solid var(--color-primary);
+      margin: 2.5rem 0;
+      position: relative;
+    }
+    .article-prose blockquote p {
+      font-family: var(--font-headline);
+      font-weight: 800;
+      font-size: 1.5rem;
+      line-height: 1.3;
+      margin-bottom: 0;
+    }
+    .article-prose img {
+      width: 100%;
+      border-radius: 2px;
+      margin: 2rem 0;
+    }
+    .article-prose ul, .article-prose ol {
+      padding-left: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .article-prose li {
+      margin-bottom: 0.5rem;
+      font-size: 1.125rem;
+      line-height: 1.6;
+    }
+    .article-prose a {
+      color: var(--color-primary);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .article-prose a:hover {
+      color: var(--color-primary-dim);
+    }
+
+    /* Line clamp utility */
+    .line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .line-clamp-3 {
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* Responsive container */
+    .container-site {
+      max-width: 1536px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+    @media (min-width: 768px) {
+      .container-site { padding: 0 3rem; }
+    }
+  </style>
+</head>
+<body>
+  <Header date={formattedDate} />
+  <slot />
+  <Footer />
+</body>
+</html>

@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    expose:
+      - "4321"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://eliminados:${DB_PASSWORD}@db:5432/eliminados
+      - SITE_URL=${SITE_URL:-http://localhost:4321}
+      - API_TOKEN=${API_TOKEN}
+      - HOST=0.0.0.0
+      - PORT=4321
+    volumes:
+      - ./media:/app/public/media
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: eliminados
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: eliminados
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eliminados"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pg_data:

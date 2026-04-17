@@ -1,0 +1,96 @@
+---
+interface Props {
+  title: string;
+  excerpt?: string;
+  image: string;
+  imageAlt: string;
+  category: string;
+  categoryColor?: string;
+  href: string;
+  badge?: string;
+}
+
+const {
+  title,
+  excerpt,
+  image,
+  imageAlt,
+  category,
+  href,
+  badge,
+} = Astro.props;
+---
+
+<article style="cursor: pointer;">
+  <a href={href} style="text-decoration: none; color: inherit; display: block;">
+    <div style="
+      aspect-ratio: 4/3;
+      overflow: hidden;
+      border-radius: 2px;
+      margin-bottom: 1rem;
+    ">
+      <img
+        src={image}
+        alt={imageAlt}
+        loading="lazy"
+        style="
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+        "
+        onmouseover="this.style.transform='scale(1.05)'"
+        onmouseout="this.style.transform='scale(1)'"
+      />
+    </div>
+
+    {badge && (
+      <span style={`
+        background: var(--color-primary);
+        color: white;
+        font-size: 0.5625rem;
+        font-weight: 900;
+        padding: 0.125rem 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        margin-bottom: 0.75rem;
+        display: inline-block;
+      `}>
+        {badge}
+      </span>
+    )}
+
+    <span class="font-headline" style="
+      display: block;
+      font-size: 0.5625rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--color-primary);
+      margin-bottom: 0.375rem;
+    ">
+      {category}
+    </span>
+
+    <h4 class="font-headline" style="
+      font-size: 1.5rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      line-height: 1;
+      letter-spacing: -0.025em;
+      transition: color 0.2s;
+    ">
+      {title}
+    </h4>
+
+    {excerpt && (
+      <p class="line-clamp-2" style="
+        font-size: 0.875rem;
+        color: var(--color-on-surface-variant);
+        margin-top: 0.5rem;
+      ">
+        {excerpt}
+      </p>
+    )}
+  </a>
+</article>

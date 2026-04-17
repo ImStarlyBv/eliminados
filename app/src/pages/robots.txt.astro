@@ -1,0 +1,12 @@
+---
+// robots.txt — allow all, point to sitemaps
+const siteUrl = import.meta.env.SITE || 'http://localhost:4321';
+
+const robotsTxt = `User-agent: *
+Allow: /
+
+Sitemap: ${siteUrl}/sitemap.xml
+Sitemap: ${siteUrl}/news-sitemap.xml
+`;
+---
+{robotsTxt}

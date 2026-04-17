@@ -1,0 +1,198 @@
+---
+const year = new Date().getFullYear();
+
+const categoryLinks = [
+  { label: 'Reality', href: '/reality/' },
+  { label: 'Farándula', href: '/farandula/' },
+  { label: 'Música Urbana', href: '/musica/' },
+  { label: 'Deportes', href: '/deportes/' },
+  { label: 'Viral', href: '/viral/' },
+];
+
+const corporateLinks = [
+  { label: 'Sobre Nosotros', href: '#' },
+  { label: 'Contacto', href: '#' },
+  { label: 'Anúnciate', href: '#' },
+  { label: 'Trabaja con nosotros', href: '#' },
+];
+
+const legalLinks = [
+  { label: 'Aviso Legal', href: '#' },
+  { label: 'Privacidad', href: '#' },
+  { label: 'Cookies', href: '#' },
+];
+---
+
+<footer style="
+  background: var(--color-footer);
+  color: white;
+  padding: 4rem 1rem;
+  margin-top: 3rem;
+">
+  <div style="
+    max-width: 80rem;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 3rem;
+  ">
+    <!-- Brand -->
+    <div style="max-width: 22rem;">
+      <h2 class="font-headline" style="
+        font-size: 2.25rem;
+        font-weight: 900;
+        font-style: italic;
+        line-height: 1;
+        text-transform: uppercase;
+        letter-spacing: -0.05em;
+        margin-bottom: 1.5rem;
+      ">
+        ELIMINADOS
+      </h2>
+      <p style="
+        color: rgba(252, 165, 165, 0.7);
+        font-size: 0.875rem;
+        line-height: 1.6;
+        margin-bottom: 2rem;
+      ">
+        El pulso del entretenimiento en la República Dominicana y el mundo.
+        La fuente oficial de los realities, la música urbana y las noticias más candentes.
+      </p>
+      <div style="display: flex; gap: 1rem;">
+        <a href="#" style="
+          width: 2.5rem; height: 2.5rem;
+          border-radius: 9999px;
+          border: 1px solid rgba(252, 165, 165, 0.3);
+          display: flex; align-items: center; justify-content: center;
+          color: white; text-decoration: none;
+          transition: background 0.2s, color 0.2s;
+        ">
+          <span class="material-symbols-outlined" style="font-size: 1.25rem;">public</span>
+        </a>
+        <a href="#" style="
+          width: 2.5rem; height: 2.5rem;
+          border-radius: 9999px;
+          border: 1px solid rgba(252, 165, 165, 0.3);
+          display: flex; align-items: center; justify-content: center;
+          color: white; text-decoration: none;
+          transition: background 0.2s, color 0.2s;
+        ">
+          <span class="material-symbols-outlined" style="font-size: 1.25rem;">camera</span>
+        </a>
+        <a href="#" style="
+          width: 2.5rem; height: 2.5rem;
+          border-radius: 9999px;
+          border: 1px solid rgba(252, 165, 165, 0.3);
+          display: flex; align-items: center; justify-content: center;
+          color: white; text-decoration: none;
+          transition: background 0.2s, color 0.2s;
+        ">
+          <span class="material-symbols-outlined" style="font-size: 1.25rem;">play_circle</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Links grid -->
+    <div style="
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3rem;
+      flex: 1;
+    ">
+      <!-- Categories -->
+      <div>
+        <h5 class="font-headline" style="
+          font-weight: 900;
+          text-transform: uppercase;
+          font-size: 0.75rem;
+          letter-spacing: 0.15em;
+          color: var(--color-secondary-fixed);
+          margin-bottom: 1.5rem;
+        ">Categorías</h5>
+        <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.75rem;">
+          {categoryLinks.map((link) => (
+            <li>
+              <a href={link.href} style="
+                color: rgba(252, 165, 165, 0.7);
+                font-size: 0.875rem;
+                text-decoration: none;
+                transition: color 0.2s;
+              ">{link.label}</a>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <!-- Corporate -->
+      <div>
+        <h5 class="font-headline" style="
+          font-weight: 900;
+          text-transform: uppercase;
+          font-size: 0.75rem;
+          letter-spacing: 0.15em;
+          color: var(--color-secondary-fixed);
+          margin-bottom: 1.5rem;
+        ">Corporativo</h5>
+        <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.75rem;">
+          {corporateLinks.map((link) => (
+            <li>
+              <a href={link.href} style="
+                color: rgba(252, 165, 165, 0.7);
+                font-size: 0.875rem;
+                text-decoration: none;
+                transition: color 0.2s;
+              ">{link.label}</a>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <!-- Legal -->
+      <div>
+        <h5 class="font-headline" style="
+          font-weight: 900;
+          text-transform: uppercase;
+          font-size: 0.75rem;
+          letter-spacing: 0.15em;
+          color: var(--color-secondary-fixed);
+          margin-bottom: 1.5rem;
+        ">Legal</h5>
+        <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.75rem;">
+          {legalLinks.map((link) => (
+            <li>
+              <a href={link.href} style="
+                color: rgba(252, 165, 165, 0.7);
+                font-size: 0.875rem;
+                text-decoration: none;
+                transition: color 0.2s;
+              ">{link.label}</a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom bar -->
+  <div style="
+    max-width: 80rem;
+    margin: 4rem auto 0;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.625rem;
+    font-weight: 500;
+    color: rgba(252, 165, 165, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  ">
+    <p>© {year} ELIMINADOS. El pulso del entretenimiento.</p>
+    <p>Santo Domingo, República Dominicana</p>
+  </div>
+</footer>
