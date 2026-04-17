@@ -6,16 +6,17 @@ services:
       context: ./app
       dockerfile: Dockerfile
     expose:
-      - "80"
+      - "4321"
     depends_on:
       db:
         condition: service_healthy
     environment:
+      - SERVICE_FQDN_APP_4321
       - DATABASE_URL=postgresql://eliminados:${DB_PASSWORD}@db:5432/eliminados
-      - SITE_URL=${SITE_URL:-https://eliminados.online}
+      - SITE_URL=$SERVICE_FQDN_APP_4321
       - API_TOKEN=${API_TOKEN}
       - HOST=0.0.0.0
-      - PORT=80
+      - PORT=4321
     volumes:
       - ./media:/app/public/media
     restart: unless-stopped
@@ -29,7 +30,7 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U eliminados"]
+      test: [ "CMD-SHELL", "pg_isready -U eliminados" ]
       interval: 5s
       timeout: 5s
       retries: 5
