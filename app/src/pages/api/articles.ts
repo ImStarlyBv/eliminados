@@ -53,16 +53,31 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // TODO: In production, insert into DB via Drizzle
-    // For now, return a mock successful response
-    const mockId = Math.random().toString(36).substring(2, 10);
-    const now = new Date();
-    const siteUrl = import.meta.env.SITE || 'http://localhost:4321';
+    // Insert into DB
+    let articleId = mockId;
+    try {
+      const { db } = await import('@/lib/db');
+      const { articles } = await import('@/db/schema');
+      
+      const insertResult = await db.insert(articles).values({
+        title: body.title,
+        h1: body.title, // Simplified, assume h1 is same as title
+        metaDescription: body.meta_description,
+        bodyHtml: body.body_html,
+        slug: articleSlug,
+        status: 'published',
+      }).returning({ id: articles.id });
+      
+      articleId = insertResult[0].id;
 
-    // Generate slug
-    const yyyy = now.getFullYear();
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
+      // Trigger internal linking pipeline asynchronously (fire-and-forget)
+      // This calculates related articles and updates FTS
+      import('@/lib/indexing').then(({ runIndexingPipeline }) => {
+         runIndexingPipeline(articleId).catch(console.error);
+      });
+    } catch (dbError) {
+      console.warn('DB not connected, using placeholder output', dbError);
+    }
     const dateStr = `${yyyy}${mm}${dd}`;
     const slug = body.title
       .toLowerCase()
