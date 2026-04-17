@@ -13,7 +13,7 @@ services:
     environment:
       - SERVICE_FQDN_APP_4321
       - DATABASE_URL=postgresql://eliminados:${DB_PASSWORD}@db:5432/eliminados
-      - SITE_URL=$SERVICE_FQDN_APP_4321
+      - SITE_URL=https://eliminados.online
       - API_TOKEN=${API_TOKEN}
       - HOST=0.0.0.0
       - PORT=4321
