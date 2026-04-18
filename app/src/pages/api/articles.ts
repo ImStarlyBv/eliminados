@@ -1,13 +1,44 @@
 import type { APIRoute } from 'astro';
+import { createId } from '@paralleldrive/cuid2';
+import { eq } from 'drizzle-orm';
 
-/**
- * POST /api/articles — Create a new article
- * Protected by API_TOKEN header.
- */
+const SITE_URL = process.env.SITE_URL || import.meta.env.SITE_URL || 'https://eliminados.online';
+
+function slugify(input: string): string {
+  return input
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 60)
+    .replace(/-$/, '');
+}
+
+function htmlToText(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function wordCount(text: string): number {
+  return text ? text.split(/\s+/).filter(Boolean).length : 0;
+}
+
 export const POST: APIRoute = async ({ request }) => {
   const apiToken = import.meta.env.API_TOKEN || process.env.API_TOKEN;
 
-  // Auth check
   const authHeader = request.headers.get('Authorization');
   if (!authHeader || authHeader !== `Bearer ${apiToken}`) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -16,106 +47,155 @@ export const POST: APIRoute = async ({ request }) => {
     });
   }
 
+  let body: any;
   try {
-    const body = await request.json();
+    body = await request.json();
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
-    // Validate required fields
-    const required = ['title', 'meta_description', 'category_slug', 'body_html'];
-    const missing = required.filter((f) => !body[f]);
-    if (missing.length > 0) {
-      return new Response(
-        JSON.stringify({ error: `Missing fields: ${missing.join(', ')}` }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Validate SEO constraints
-    const errors: string[] = [];
-    if (body.title.length < 48 || body.title.length > 60) {
-      errors.push(`Title must be 48–60 chars (got ${body.title.length})`);
-    }
-    if (body.meta_description.length < 150 || body.meta_description.length > 160) {
-      errors.push(
-        `Meta description must be 150–160 chars (got ${body.meta_description.length})`
-      );
-    }
-    if (!/<h1[\s>]/i.test(body.body_html)) {
-      errors.push('Body HTML must contain at least one <h1>');
-    }
-    if (/<script/i.test(body.body_html)) {
-      errors.push('Body HTML must not contain <script> tags');
-    }
-
-    if (errors.length > 0) {
-      return new Response(
-        JSON.stringify({ error: 'Validation failed', details: errors }),
-        { status: 422, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Insert into DB
-    let articleId = mockId;
-    try {
-      const { db } = await import('@/lib/db');
-      const { articles } = await import('@/db/schema');
-      
-      const insertResult = await db.insert(articles).values({
-        title: body.title,
-        h1: body.title, // Simplified, assume h1 is same as title
-        metaDescription: body.meta_description,
-        bodyHtml: body.body_html,
-        slug: articleSlug,
-        status: 'published',
-      }).returning({ id: articles.id });
-      
-      articleId = insertResult[0].id;
-
-      // Trigger internal linking pipeline asynchronously (fire-and-forget)
-      // This calculates related articles and updates FTS
-      import('@/lib/indexing').then(({ runIndexingPipeline }) => {
-         runIndexingPipeline(articleId).catch(console.error);
-      });
-    } catch (dbError) {
-      console.warn('DB not connected, using placeholder output', dbError);
-    }
-    const dateStr = `${yyyy}${mm}${dd}`;
-    const slug = body.title
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .slice(0, 60)
-      .replace(/-$/, '');
-
-    const articleSlug = `${dateStr}/${slug}_${mockId}.html`;
-
+  const required = ['title', 'meta_description', 'category_slug', 'body_html'];
+  const missing = required.filter((f) => !body[f]);
+  if (missing.length > 0) {
     return new Response(
-      JSON.stringify({
-        id: mockId,
-        slug: articleSlug,
-        url: `${siteUrl}/${articleSlug}`,
-      }),
-      { status: 201, headers: { 'Content-Type': 'application/json' } }
-    );
-  } catch (e) {
-    return new Response(
-      JSON.stringify({ error: 'Invalid JSON body' }),
+      JSON.stringify({ error: `Missing fields: ${missing.join(', ')}` }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
     );
   }
-};
 
-/**
- * GET /api/articles — List published articles (placeholder)
- */
-export const GET: APIRoute = async () => {
-  // TODO: Query DB for published articles
+  const errors: string[] = [];
+  if (body.title.length < 48 || body.title.length > 60) {
+    errors.push(`Title must be 48–60 chars (got ${body.title.length})`);
+  }
+  if (body.meta_description.length < 150 || body.meta_description.length > 160) {
+    errors.push(
+      `Meta description must be 150–160 chars (got ${body.meta_description.length})`
+    );
+  }
+  if (!/<h1[\s>]/i.test(body.body_html)) {
+    errors.push('Body HTML must contain at least one <h1>');
+  }
+  if (/<script/i.test(body.body_html)) {
+    errors.push('Body HTML must not contain <script> tags');
+  }
+
+  if (errors.length > 0) {
+    return new Response(
+      JSON.stringify({ error: 'Validation failed', details: errors }),
+      { status: 422, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const articleId = createId();
+  const now = new Date();
+  const yyyy = String(now.getUTCFullYear());
+  const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(now.getUTCDate()).padStart(2, '0');
+  const dateStr = `${yyyy}${mm}${dd}`;
+  const baseSlug = slugify(body.title) || articleId.slice(0, 12);
+  const articleSlug = `${dateStr}/${baseSlug}_${articleId}.html`;
+
+  const bodyText = htmlToText(body.body_html);
+  const wc = wordCount(bodyText);
+  const status: 'draft' | 'published' =
+    body.status === 'draft' ? 'draft' : 'published';
+
+  try {
+    const { db } = await import('@/lib/db');
+    const { articles, categories, authors } = await import('@/db/schema');
+
+    let categoryId: string | null = null;
+    const [cat] = await db
+      .select({ id: categories.id })
+      .from(categories)
+      .where(eq(categories.slug, body.category_slug))
+      .limit(1);
+    if (cat) categoryId = cat.id;
+
+    let authorId: string | null = null;
+    if (body.author_slug) {
+      const [au] = await db
+        .select({ id: authors.id })
+        .from(authors)
+        .where(eq(authors.slug, body.author_slug))
+        .limit(1);
+      if (au) authorId = au.id;
+    }
+
+    await db.insert(articles).values({
+      id: articleId,
+      slug: articleSlug,
+      title: body.title,
+      h1: body.h1 || body.title,
+      metaDescription: body.meta_description,
+      ogImage: body.og_image ?? null,
+      bodyHtml: body.body_html,
+      bodyText,
+      wordCount: wc,
+      lang: body.lang || 'es',
+      publishedAt: status === 'published' ? now : null,
+      authorId,
+      categoryId,
+      status,
+    });
+
+    import('@/lib/indexing')
+      .then(({ runIndexingPipeline }) => {
+        runIndexingPipeline(articleId).catch((e) =>
+          console.error('Indexing pipeline error:', e)
+        );
+      })
+      .catch((e) => console.error('Indexing import error:', e));
+  } catch (dbError) {
+    console.error('DB insert failed:', dbError);
+    return new Response(
+      JSON.stringify({
+        error: 'Database error',
+        detail: dbError instanceof Error ? dbError.message : String(dbError),
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
   return new Response(
     JSON.stringify({
-      articles: [],
-      message: 'Database not connected yet — this is a placeholder.',
+      id: articleId,
+      slug: articleSlug,
+      url: `${SITE_URL}/${articleSlug}`,
+      status,
     }),
-    { status: 200, headers: { 'Content-Type': 'application/json' } }
+    { status: 201, headers: { 'Content-Type': 'application/json' } }
   );
+};
+
+export const GET: APIRoute = async () => {
+  try {
+    const { db } = await import('@/lib/db');
+    const { articles } = await import('@/db/schema');
+    const rows = await db
+      .select({
+        id: articles.id,
+        slug: articles.slug,
+        title: articles.title,
+        publishedAt: articles.publishedAt,
+        status: articles.status,
+      })
+      .from(articles)
+      .limit(50);
+    return new Response(JSON.stringify({ articles: rows }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (e) {
+    return new Response(
+      JSON.stringify({
+        articles: [],
+        error: e instanceof Error ? e.message : String(e),
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
 };
