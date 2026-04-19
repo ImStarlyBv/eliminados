@@ -2,58 +2,72 @@
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import TrendingSidebar from '@/components/TrendingSidebar.astro';
 import { buildJsonLd } from '@/lib/seo';
+import { db } from '@/lib/db';
+import { articles, authors, categories, articleTags, tags } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 
 // Route: /[date]/[slug].html  e.g. /20260416/laura-planeta-alofoke_9f2ab3.html
 const { date, slug } = Astro.params;
 const siteUrl = import.meta.env.SITE || 'https://eliminados.online';
+const fullSlugPath = `${date}/${slug}`;
 
-// TODO: Query DB for article by slug
-// For now, show a placeholder article for demonstration
+const [row] = await db
+  .select({
+    id: articles.id,
+    slug: articles.slug,
+    title: articles.title,
+    h1: articles.h1,
+    metaDescription: articles.metaDescription,
+    ogImage: articles.ogImage,
+    bodyHtml: articles.bodyHtml,
+    publishedAt: articles.publishedAt,
+    updatedAt: articles.updatedAt,
+    status: articles.status,
+    authorName: authors.name,
+    authorSlug: authors.slug,
+    authorAvatar: authors.avatarUrl,
+    categoryName: categories.name,
+    categorySlug: categories.slug,
+  })
+  .from(articles)
+  .leftJoin(authors, eq(articles.authorId, authors.id))
+  .leftJoin(categories, eq(articles.categoryId, categories.id))
+  .where(eq(articles.slug, fullSlugPath))
+  .limit(1);
+
+if (!row || row.status !== 'published') {
+  return new Response('Not Found', { status: 404 });
+}
+
+const tagRows = await db
+  .select({ slug: tags.slug, name: tags.name })
+  .from(articleTags)
+  .innerJoin(tags, eq(articleTags.tagId, tags.id))
+  .where(eq(articleTags.articleId, row.id));
+
 const article = {
-  title: 'Estos son los 23 participantes de Planeta Alofoke 2: Laura Sahar y Pamela Infante encabezan la lista',
-  h1: 'Estos son los 23 participantes de Planeta Alofoke 2: Laura Sahar y Pamela Infante encabezan la lista',
-  metaDescription: 'Alofoke Radio Show reveló la lista oficial de los 23 participantes de Planeta Alofoke 2. Laura Sahar y Pamela Infante lideran el elenco.',
-  ogImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBv1hq9KGy7TpQoDCCs_GHzj287miXUrWBsei-MSvidAAWjTzqawrRC25TfSWpksfj2Zha6j6xkhoQGdLP0coPnVPGQj3s4WpTDqgoxC5yoDfp_SuqYN-ZuxVKpnroIoRIrhrMjv-5JMKWIbf9ZTCIcVatbo_6B4x2FgxRtBJqtZkUEVLkUA4heJ7FmWxPdsgruWh_vT2-lHSr6gUnGn_ZRhD5WSwBrOvgW6BvEMO1QQnnnW4DHlCwzW9sgEIrIwnRcNh5KTRWFBQ',
-  bodyHtml: `
-    <p>El fenómeno que paralizó el internet el año pasado está de vuelta. Santiago Matías "Alofoke" confirmó esta tarde a través de su plataforma los nombres de los 23 elegidos que convivirán en la mansión de Planeta Alofoke 2.</p>
-
-    <h2>Laura Sahar: El regreso más esperado</h2>
-    <p>La influencer Laura Sahar, conocida por su fuerte personalidad en las plataformas digitales, fue la primera en ser confirmada. Tras meses de especulaciones, su participación asegura que el drama y la autenticidad estarán presentes desde el día uno. "Vengo a ganar, no a hacer amigos", declaró brevemente en sus redes sociales.</p>
-
-    <blockquote>
-      <p>"Esta temporada no se trata solo de convivencia, se trata de ver quién tiene la piel más dura en la era digital."</p>
-      <cite>— Santiago Matías</cite>
-    </blockquote>
-
-    <h2>Pamela Infante y el bloque de los influencers</h2>
-    <p>Acompañando a Sahar, Pamela Infante se une al elenco, trayendo consigo a una comunidad de más de 3 millones de seguidores. Su ingreso marca un punto de inflexión en la competencia, ya que su estrategia suele ser más cerebral que impulsiva.</p>
-
-    <h2>Los 23 Confirmados</h2>
-    <ul>
-      <li>1. Laura Sahar</li>
-      <li>2. Pamela Infante</li>
-      <li>3. El Tio</li>
-      <li>4. La Jefa</li>
-      <li>5. DJ Nabil</li>
-      <li>6. Caro Brito</li>
-      <li>7. Sandra Berrocal</li>
-      <li>8. Vitaly Sánchez</li>
-    </ul>
-    <p><em>Lista completa disponible en la aplicación oficial.</em></p>
-
-    <p>Las grabaciones iniciarán la próxima semana en una locación secreta al este del país. Los fanáticos podrán seguir el minuto a minuto a través de la señal exclusiva de ELIMINADOS y los canales oficiales de Alofoke Media Group.</p>
-  `,
-  publishedAt: '2026-04-16T18:00:00Z',
-  updatedAt: '2026-04-16T18:00:00Z',
-  authorName: 'Redacción ELIMINADOS',
-  authorSlug: 'redaccion-eliminados',
-  authorAvatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBzTNnhCZbmAsSaYSGfqkTDImQGYuyAKyq7RfuZFqkWBFDiZlp7kq4HaegWhqSADVLsc10da_SserCXjsk1VU6vJJryMbhEFOmA_wNSESUDkzHK1biV8eku44H7SOVnXj5wz1T4nZTL2zmKUuabORzcy7ZMAmWTetkPnFfY1iUVJpAcfBYbHA1k1l2wW8EwyR3G6FEaoD-zJ1Qm1LVI8oDKpOlMQiNkvV45VLW4rypQ_Q70BY2Uiv17tNjVSVtSnWpADnTwvZlZjg',
-  category: 'Reality',
-  categorySlug: 'reality',
-  tags: ['PlanetaAlofoke', 'RealityRD', 'Entretenimiento', 'Alofoke'],
+  title: row.title,
+  h1: row.h1,
+  metaDescription: row.metaDescription,
+  ogImage: row.ogImage || 'https://eliminados.online/og-default.jpg',
+  bodyHtml: row.bodyHtml,
+  publishedAt: (row.publishedAt ?? row.updatedAt).toISOString(),
+  updatedAt: row.updatedAt.toISOString(),
+  authorName: row.authorName || 'Redacción ELIMINADOS',
+  authorSlug: row.authorSlug || 'redaccion-eliminados',
+  authorAvatar:
+    row.authorAvatar ||
+    'https://images.unsplash.com/photo-1542204165-65bf26472b9b?w=200&h=200&fit=crop',
+  category: row.categoryName || 'Noticias',
+  categorySlug: row.categorySlug || '',
+  tags: tagRows.length
+    ? tagRows.map((t) => t.name)
+    : ['Eliminados'],
+  tagSlugs: tagRows.length
+    ? tagRows.map((t) => t.slug)
+    : ['eliminados'],
 };
 
-const fullSlugPath = `${date}/${slug}`;
 const canonicalUrl = `${siteUrl}/${fullSlugPath}`;
 
 const seo = {
@@ -289,8 +303,8 @@ const dateFormatter = new Intl.DateTimeFormat('es-DO', {
         flex-wrap: wrap;
         gap: 0.5rem;
       ">
-        {article.tags.map((tag) => (
-          <a href={`/tag/${tag.toLowerCase()}/`} style="
+        {article.tags.map((tag, i) => (
+          <a href={`/tag/${article.tagSlugs[i]}/`} style="
             background: var(--color-surface-container-highest);
             padding: 0.375rem 1rem;
             border-radius: 9999px;
