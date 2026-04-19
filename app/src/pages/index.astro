@@ -3,6 +3,10 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
 import ArticleCard from '@/components/ArticleCard.astro';
 import TrendingSidebar from '@/components/TrendingSidebar.astro';
 import { buildJsonLd } from '@/lib/seo';
+import { db } from '@/lib/db';
+import { DEFAULT_IMAGE, DEFAULT_AVATAR } from '@/lib/defaults';
+import { articles, categories, authors, tags, articleTags } from '@/db/schema';
+import { eq, desc, and, count } from 'drizzle-orm';
 
 const siteUrl = import.meta.env.SITE || 'http://localhost:4321';
 
@@ -23,102 +27,121 @@ const jsonLd = buildJsonLd({
   siteUrl,
 });
 
-// Placeholder data — in production this comes from DB
-const heroArticle = {
-  title: 'Estos son los 23 participantes confirmados de Planeta Alofoke 2',
-  excerpt:
-    'La espera terminó. La producción más ambiciosa de la televisión digital dominicana revela sus rostros. Desde influencers hasta leyendas urbanas, entérate de quiénes competirán por el gran premio.',
-  image:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuDOHsYv6sDZH01Z6fZ5SfKLnGNjTFS_M_Qp0YJh5yIj-27uGwrrQ3-8cqipOwvRXO77bUaRbpVKrtq3FJp33rsWEwk2cbjy3A7OMeyf1RL7WZpsPryruRpkXgPvMW1TJPO4fbx0KRYT6cXQq26PhmKzFy_rh25BqEjjcDbp8pU40Xo3zMgB044-YDChWgPJUDlRwdm_6xsY1fxGK6TMkoW9Odhz2AxokFsCYCjetfxao9GEm6SBPjVQfDYRv7EITHPrUgmbQ3j9bQ',
-  imageAlt: 'Participantes de Planeta Alofoke 2 en set de televisión',
-  category: 'REALITY',
-  subcategory: 'PLANETA ALOFOKE',
-  authorName: 'Juan Manuel Pérez',
-  authorAvatar:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuC8udDCf6zDcNLMNJCYbsmfay0tsyhKtcyZLPtb560b-9ASzpdSszg3IHejDE6kVDdHZmXAyMi2jTFd1ri2GRdlP8vwNKVaJTWV5-AJWrwh2-OzG5Rw099-uWp1mU5JiK8Egh5pkO7FdOLaQx6G4zhnTr7aaGC7g_PBR208XItajl-fTZAtT2fkKx2lxDQnc3U00nRLJuXJFitku7yFXfsmPdpUZG_b2xnELt07NrvWZEQd2n6306Rz2zdrkmsVL5UyOvd8CvsutQ',
-  href: '#',
-  timeAgo: 'Hace 14 minutos',
-  readTime: '4 min lectura',
+function timeAgoEs(date: Date | null): string {
+  if (!date) return '';
+  const diff = Date.now() - date.getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'Hace un instante';
+  if (m < 60) return `Hace ${m} minuto${m === 1 ? '' : 's'}`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `Hace ${h} hora${h === 1 ? '' : 's'}`;
+  const d = Math.floor(h / 24);
+  return `Hace ${d} día${d === 1 ? '' : 's'}`;
+}
+
+function readTimeEs(words: number): string {
+  const mins = Math.max(1, Math.round((words ?? 0) / 200));
+  return `${mins} min lectura`;
+}
+
+const articleCols = {
+  id: articles.id,
+  slug: articles.slug,
+  title: articles.title,
+  metaDescription: articles.metaDescription,
+  ogImage: articles.ogImage,
+  publishedAt: articles.publishedAt,
+  updatedAt: articles.updatedAt,
+  wordCount: articles.wordCount,
+  categoryName: categories.name,
+  categorySlug: categories.slug,
+  authorName: authors.name,
+  authorAvatar: authors.avatarUrl,
 };
 
-const trendingItems = [
-  { rank: '01', title: 'Laura Sahar revela la verdad detrás de su salida del show', category: 'FARÁNDULA', href: '#' },
-  { rank: '02', title: 'Top 10: Las canciones más pegadas en RD esta semana', category: 'MÚSICA', href: '#' },
-  { rank: '03', title: 'Escándalo en La Casa de Alofoke por filtración de video', category: 'VIRAL', href: '#' },
-  { rank: '04', title: '¿Regresa la vieja escuela del Reggaetón? Esto es lo que sabemos', category: 'MÚSICA', href: '#' },
-  { rank: '05', title: 'Pamela Infante confirma que está soltera y sin compromiso', category: 'FARÁNDULA', href: '#' },
-];
+const latest = await db
+  .select(articleCols)
+  .from(articles)
+  .leftJoin(categories, eq(articles.categoryId, categories.id))
+  .leftJoin(authors, eq(articles.authorId, authors.id))
+  .where(eq(articles.status, 'published'))
+  .orderBy(desc(articles.publishedAt))
+  .limit(20);
 
-const farandulaCards = [
-  {
-    title: 'Los looks que impactaron en la gala de anoche',
-    excerpt: 'Análisis detallado de los aciertos y errores de la moda urbana en la alfombra roja del año.',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC6HCuSZGvOBvnZN6pTp9Mi4B01lO7DB6U-DOY5ed5V5aJn8fV2Dt1Cq6LaTZRrpO7EQITtF8IbjSYyiCNJe1b8zkUYey44UxrKj93KtufequciXOBrTexSlLRluvgIHu490tnfL8txDJH7BgNhF_8Y9Th8XzFlMQlUwlz2vXdRB-O2JEViVwanyX6tZLvFE8tiFPivpFGWV4Q6cIBLZaYyEmCBQsnfJZUWMEFQCYbxRg5_nYJaStVDtQac7ut-FdAD2PPkAPk9mQ',
-    imageAlt: 'Gala de alfombra roja con vestidos de alta costura',
-    category: 'FARÁNDULA',
-    badge: 'EXCLUSIVA',
-    href: '#',
-  },
-  {
-    title: 'El polémico mensaje de El Alfa tras su concierto',
-    excerpt: 'El líder del dembow no se guardó nada y arremetió contra quienes dudaron de su éxito.',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC3_etRDDEMcPB1RnVbdDPPtL2yhd9DI1Iw2a2boiDUkwUVERnWyTiEvEdvmwO7BqimGfmyeuaoEeFWcuQyBGs0LCQdiVey0mqxoJ8wmJbRehjPoOcLoiqOO4fTR9JV8lLkgxBVjWydQNFibrAcwfUsUqoI_t4RFZ-9HHjdLXK9m8HMWBSnYMKzAmdqkCfHzIa3G0FOv_HBMTz141IA-1LwTg-69uERMCgpePXEuO2c6HIcQttlg1ioe6oF1A8ezC9feTjSe3jDdg',
-    imageAlt: 'El Alfa en concierto con iluminación dramática',
-    category: 'FARÁNDULA',
-    badge: 'VIRAL',
-    href: '#',
-  },
-  {
-    title: 'Regresa el podcast más visto de la bolita del mundo',
-    excerpt: 'Prepárate para las revelaciones más fuertes del entretenimiento con invitados de lujo.',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDEYMjWJ6EHNyEhBsysn4JJlq0IHAHrADkBZ2CB8Mc8NDekXd3Sdh7l5w4tH3f5oF58Mcgs6XBl94HfWrYdMleHNluKT_HWbxMt7ZITNC-6qjo3QqLIkL2Eou3KvgBhfAjHJ7lAuFpKutgTW3Ahu_Ji7VH3eX8oa2xPWBBZMixGi6qLrtf2We65cXel5_NCLscyAldvO5GgK1bH1ECT5jqnrbSqIzibnMzKbXxF4qo8_0Xn5On711UdPkYxBtdczz1nJRwdm4VJSQ',
-    imageAlt: 'Estudio de podcast moderno con iluminación profesional',
-    category: 'FARÁNDULA',
-    badge: 'NUEVO',
-    href: '#',
-  },
-];
+const hero = latest[0] ?? null;
 
-const realityCards = [
-  {
-    title: 'Pamela Infante: "¿Quién dijo que las reinas no lloran?"',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD7H5INRTwSdumvwhigA2tVw6Ns0NgHwzD31W2am23zAtjxrXQSXGKENF6jiYp9asJP90heFL_87eDrQYNO-egWm6smL5iQJE5SVdQcHKHJGcNJvlGaeXMdhJNRXn4yGOBlYC6pdsYro-zvjU3DIKvPow4O-DsBco9XgqExn_6qaOoKqdzyCF9B5GmnvhCNFSpSM9dNUAobV3zfP_mQ-w7UvqR272z30izLvLKsNxMlxRR1uKhabPKoPZOrEP7YDjUh2-zntk9LaQ',
-    imageAlt: 'Pamela Infante posando al atardecer',
-    badge: 'LA CASA DE ALOFOKE',
-    href: '#',
-  },
-  {
-    title: 'Laura Sahar confiesa sus miedos más profundos',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCygJYrqY11XGdFB-q7Yy5vk4etzAoCYL941ELHZGSkDOXvzeB5mN7ZaSPPnKLE7yg2Pypp7iwVdQbOQJCEQG6BKWZ81m5B3zZSgh8lJvtu2sWbhzJasnf8zfc7hl4q3y5DxbAoxTb7gDnv39FluhBkj3PK9rxH3_vMK6OQ56INZgcnQFwzbuPcCNBM_sTwYHA7gHELZn7zuYlY-YsAwmJHRwpNn6OiM8jxidfR6roqMnCDCT4gH0O3Qzquz0MUErP6xakSpgeZng',
-    imageAlt: 'Laura Sahar en un camerino con luces cálidas',
-    badge: 'LA CASA DE ALOFOKE',
-    href: '#',
-  },
-  {
-    title: 'La fiesta de anoche que terminó en llanto y drama',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDLSx04rwtSu1PValOgsVi4qetlJuPyHALdfvUAy4f1fL7C09I6sUlFibJl5zzsAAz3bUeklDyMGnJIQ_ce7JkDFTZ4-jqp7lmInRB5HcN7a-9Ttu_hpjhOw4dq9UssAKB6P9vHP6TjhU03tm8H_j5YexLrHLCoInMZNghoLNqnkgorvBPDDUta0ZQoxhMIk1p1FDuf9cDza11TgSllXtX6MWp3cctXcfwLSuXcyDKDs5vd2HA_wpG4d4oLvDhRVFyrmvpdYTmcUg',
-    imageAlt: 'Fiesta nocturna con luces de neón y siluetas',
-    badge: 'VIRAL',
-    href: '#',
-  },
-  {
-    title: 'Se filtra el contrato millonario de la nueva temporada',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCtR7NZhcUTJ_AuWhkwiEdyM1kepy5sogd-FQmITGssqN-b-8o_EECG6NDjbnYxqoR6UcaS3rnrn5yv1MXIJGJK9HpAQbdrnHVM3Fa3jJaCuNXP7L05852--8sKqFVX282x5kceoCK2RTTzC_f0E6kBFixnZTl-RNQCJNMKx9mgOwqhpSblk6_2KkJ9idNcKNLIQHap5WykXfeEOgofLf-qt7pBETArO5JUt5daERQWFP66TsJH-qsspcoAVhX_1WCpY_ZXg4xV2A',
-    imageAlt: 'Escenario futurista con pantallas y luces láser',
-    badge: 'EXCLUSIVA',
-    href: '#',
-  },
-];
+const heroArticle = hero
+  ? {
+      title: hero.title,
+      excerpt: hero.metaDescription,
+      image: hero.ogImage || DEFAULT_IMAGE,
+      imageAlt: hero.title,
+      category: (hero.categoryName || 'Noticias').toUpperCase(),
+      subcategory: 'ELIMINADOS',
+      authorName: hero.authorName || 'Redacción ELIMINADOS',
+      authorAvatar: hero.authorAvatar || DEFAULT_AVATAR,
+      href: `/${hero.slug}`,
+      timeAgo: timeAgoEs(hero.publishedAt ?? hero.updatedAt),
+      readTime: readTimeEs(hero.wordCount ?? 0),
+    }
+  : null;
 
-const trendingTags = [
-  '#PlanetaAlofoke',
-  '#PamelaInfante',
-  '#LauraSahar',
-  '#LaCasaDeAlofoke',
-  '#ReggaetonDominicano',
-  '#ViralRD',
-  '#Eliminados',
-];
+const trendingItems = latest.slice(1, 6).map((a, i) => ({
+  rank: String(i + 1).padStart(2, '0'),
+  title: a.title,
+  category: (a.categoryName || 'NOTICIAS').toUpperCase(),
+  href: `/${a.slug}`,
+}));
+
+async function queryByCategory(slug: string, limit: number) {
+  return db
+    .select(articleCols)
+    .from(articles)
+    .leftJoin(categories, eq(articles.categoryId, categories.id))
+    .leftJoin(authors, eq(articles.authorId, authors.id))
+    .where(and(eq(articles.status, 'published'), eq(categories.slug, slug)))
+    .orderBy(desc(articles.publishedAt))
+    .limit(limit);
+}
+
+const farandulaRows = await queryByCategory('farandula', 3);
+const farandulaCards = farandulaRows.map((a) => ({
+  title: a.title,
+  excerpt: a.metaDescription,
+  image: a.ogImage || DEFAULT_IMAGE,
+  imageAlt: a.title,
+  category: 'FARÁNDULA',
+  badge: 'FARÁNDULA',
+  href: `/${a.slug}`,
+}));
+
+const realityRows = await queryByCategory('reality', 4);
+const realityCards = realityRows.map((a) => ({
+  title: a.title,
+  image: a.ogImage || DEFAULT_IMAGE,
+  imageAlt: a.title,
+  badge: (a.categoryName || 'REALITY').toUpperCase(),
+  href: `/${a.slug}`,
+}));
+
+const trendingTagRows = await db
+  .select({
+    slug: tags.slug,
+    name: tags.name,
+    articleCount: count(articles.id),
+  })
+  .from(tags)
+  .innerJoin(articleTags, eq(articleTags.tagId, tags.id))
+  .innerJoin(articles, eq(articleTags.articleId, articles.id))
+  .where(eq(articles.status, 'published'))
+  .groupBy(tags.id, tags.slug, tags.name)
+  .orderBy(desc(count(articles.id)))
+  .limit(7);
+
+const trendingTags = trendingTagRows.map((t) => ({
+  label: `#${t.name.replace(/\s+/g, '')}`,
+  href: `/tag/${t.slug}/`,
+}));
 ---
 
 <BaseLayout seo={seo} jsonLd={jsonLd}>
@@ -131,7 +154,7 @@ const trendingTags = [
       gap: 2rem;
       margin-bottom: 4rem;
     " class="hero-grid">
-      <!-- Major Story -->
+      {heroArticle && (
       <div style="cursor: pointer;">
         <a href={heroArticle.href} style="text-decoration: none; color: inherit; display: block;">
           <div style="
@@ -204,8 +227,7 @@ const trendingTags = [
               line-height: 0.95;
               letter-spacing: -0.05em;
             ">
-              {heroArticle.title.split('Planeta Alofoke 2')[0]}
-              <span style="color: var(--color-primary); font-style: italic;">Planeta Alofoke 2</span>
+              {heroArticle.title}
             </h2>
 
             <p style="
@@ -241,8 +263,8 @@ const trendingTags = [
           </div>
         </a>
       </div>
+      )}
 
-      <!-- Trending Sidebar -->
       <TrendingSidebar items={trendingItems} />
     </section>
 
@@ -445,6 +467,7 @@ const trendingTags = [
     </section>
 
     <!-- ========== TRENDING TOPICS ========== -->
+    {trendingTags.length > 0 && (
     <section style="
       border-top: 1px solid var(--color-surface-container-highest);
       border-bottom: 1px solid var(--color-surface-container-highest);
@@ -467,7 +490,7 @@ const trendingTags = [
         gap: 0.75rem;
       ">
         {trendingTags.map((tag) => (
-          <a href={`/tag/${tag.replace('#', '').toLowerCase()}/`} style="
+          <a href={tag.href} style="
             background: var(--color-surface-container-highest);
             color: var(--color-on-surface);
             font-weight: 900;
@@ -477,11 +500,12 @@ const trendingTags = [
             text-decoration: none;
             transition: background 0.2s;
           ">
-            {tag}
+            {tag.label}
           </a>
         ))}
       </div>
     </section>
+    )}
 
   </main>
 </BaseLayout>

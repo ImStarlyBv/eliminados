@@ -1,19 +1,30 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import ArticleCard from '@/components/ArticleCard.astro';
 import { buildJsonLd } from '@/lib/seo';
+import { db } from '@/lib/db';
+import { DEFAULT_IMAGE } from '@/lib/defaults';
+import { articles, tags, articleTags, categories } from '@/db/schema';
+import { eq, and, desc } from 'drizzle-orm';
 
 const { slug } = Astro.params;
+const tagSlug = slug || '';
 const siteUrl = import.meta.env.SITE || 'https://eliminados.online';
 
-// Display name: capitalize and restore spaces
-const tagName = (slug || '')
-  .replace(/-/g, ' ')
-  .replace(/\b\w/g, (c) => c.toUpperCase());
+const [tag] = await db
+  .select({ id: tags.id, slug: tags.slug, name: tags.name })
+  .from(tags)
+  .where(eq(tags.slug, tagSlug))
+  .limit(1);
+
+const tagName =
+  tag?.name ||
+  tagSlug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
 const seo = {
   title: `#${tagName} — ELIMINADOS | Noticias de Entretenimiento`,
   description: `Todas las noticias etiquetadas con #${tagName}. Lo más reciente y relevante en ELIMINADOS.`,
-  canonicalUrl: `${siteUrl}/tag/${slug}/`,
+  canonicalUrl: `${siteUrl}/tag/${tagSlug}/`,
   type: 'website' as const,
 };
 
@@ -27,11 +38,39 @@ const jsonLd = buildJsonLd({
   breadcrumbs: [
     { name: 'Inicio', url: siteUrl },
     { name: 'Tags', url: `${siteUrl}/tag/` },
-    { name: `#${tagName}`, url: `${siteUrl}/tag/${slug}/` },
+    { name: `#${tagName}`, url: `${siteUrl}/tag/${tagSlug}/` },
   ],
 });
 
-// TODO: Query DB for articles with this tag
+const rows = tag
+  ? await db
+      .select({
+        id: articles.id,
+        slug: articles.slug,
+        title: articles.title,
+        metaDescription: articles.metaDescription,
+        ogImage: articles.ogImage,
+        publishedAt: articles.publishedAt,
+        categoryName: categories.name,
+      })
+      .from(articleTags)
+      .innerJoin(articles, eq(articleTags.articleId, articles.id))
+      .leftJoin(categories, eq(articles.categoryId, categories.id))
+      .where(
+        and(eq(articleTags.tagId, tag.id), eq(articles.status, 'published'))
+      )
+      .orderBy(desc(articles.publishedAt))
+      .limit(48)
+  : [];
+
+const cards = rows.map((a) => ({
+  title: a.title,
+  excerpt: a.metaDescription,
+  image: a.ogImage || DEFAULT_IMAGE,
+  imageAlt: a.title,
+  category: (a.categoryName || 'NOTICIAS').toUpperCase(),
+  href: `/${a.slug}`,
+}));
 ---
 
 <BaseLayout seo={seo} jsonLd={jsonLd}>
@@ -85,22 +124,40 @@ const jsonLd = buildJsonLd({
       </p>
     </div>
 
-    <!-- Empty state -->
-    <div style="
-      text-align: center;
-      padding: 3rem 1rem;
-      border: 2px dashed var(--color-outline-variant);
-      border-radius: 0.5rem;
-      color: var(--color-on-surface-variant);
-    ">
-      <span class="material-symbols-outlined" style="font-size: 3rem; opacity: 0.4;">label</span>
-      <p class="font-headline" style="font-weight: 700; margin-top: 1rem;">
-        Artículos con este tag próximamente
-      </p>
-      <p style="font-size: 0.875rem; margin-top: 0.5rem;">
-        Los artículos publicados con este tag aparecerán aquí automáticamente.
-      </p>
-    </div>
+    {cards.length > 0 ? (
+      <div style="
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 2rem;
+      ">
+        {cards.map((card) => (
+          <ArticleCard
+            title={card.title}
+            excerpt={card.excerpt}
+            image={card.image}
+            imageAlt={card.imageAlt}
+            category={card.category}
+            href={card.href}
+          />
+        ))}
+      </div>
+    ) : (
+      <div style="
+        text-align: center;
+        padding: 3rem 1rem;
+        border: 2px dashed var(--color-outline-variant);
+        border-radius: 0.5rem;
+        color: var(--color-on-surface-variant);
+      ">
+        <span class="material-symbols-outlined" style="font-size: 3rem; opacity: 0.4;">label</span>
+        <p class="font-headline" style="font-weight: 700; margin-top: 1rem;">
+          Aún no hay artículos con este tag
+        </p>
+        <p style="font-size: 0.875rem; margin-top: 0.5rem;">
+          Los artículos publicados con este tag aparecerán aquí automáticamente.
+        </p>
+      </div>
+    )}
 
   </main>
 </BaseLayout>

@@ -2,53 +2,39 @@
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import ArticleCard from '@/components/ArticleCard.astro';
 import { buildJsonLd } from '@/lib/seo';
+import { db } from '@/lib/db';
+import { DEFAULT_IMAGE } from '@/lib/defaults';
+import { articles, categories } from '@/db/schema';
+import { eq, and, desc } from 'drizzle-orm';
 
 const { category } = Astro.params;
+const slug = category || '';
 
-// Category definitions
-const categoryMap: Record<string, { name: string; description: string }> = {
-  farandula: {
-    name: 'Farándula',
-    description: 'Las últimas noticias de farándula, celebridades y entretenimiento en República Dominicana y el mundo.',
-  },
-  reality: {
-    name: 'Reality',
-    description: 'Cobertura exclusiva de los reality shows más vistos: Planeta Alofoke, La Casa de Alofoke y más.',
-  },
-  musica: {
-    name: 'Música',
-    description: 'Noticias de música urbana, reggaetón, dembow, bachata y los artistas más populares del momento.',
-  },
-  deportes: {
-    name: 'Deportes',
-    description: 'Lo último del deporte dominicano e internacional: béisbol, baloncesto, fútbol y más.',
-  },
-  viral: {
-    name: 'Viral',
-    description: 'Los videos, memes y momentos más virales de las redes sociales en República Dominicana.',
-  },
-  tv: {
-    name: 'TV',
-    description: 'Noticias de televisión, programas, series y las novedades de la pantalla dominicana.',
-  },
-  opinion: {
-    name: 'Opinión',
-    description: 'Columnas de opinión y análisis sobre el entretenimiento y la cultura dominicana.',
-  },
-};
-
-const cat = categoryMap[category || ''];
+const [cat] = await db
+  .select({
+    id: categories.id,
+    slug: categories.slug,
+    name: categories.name,
+    description: categories.description,
+  })
+  .from(categories)
+  .where(eq(categories.slug, slug))
+  .limit(1);
 
 if (!cat) {
-  return Astro.redirect('/');
+  return new Response('Not Found', { status: 404 });
 }
+
+const description =
+  cat.description ||
+  `Últimas noticias de ${cat.name} en ELIMINADOS. Cobertura del entretenimiento dominicano.`;
 
 const siteUrl = import.meta.env.SITE || 'https://eliminados.online';
 
 const seo = {
   title: `${cat.name} — ELIMINADOS | Noticias de Entretenimiento`,
-  description: cat.description,
-  canonicalUrl: `${siteUrl}/${category}/`,
+  description,
+  canonicalUrl: `${siteUrl}/${cat.slug}/`,
   type: 'website' as const,
 };
 
@@ -61,35 +47,31 @@ const jsonLd = buildJsonLd({
   siteUrl,
   breadcrumbs: [
     { name: 'Inicio', url: siteUrl },
-    { name: cat.name, url: `${siteUrl}/${category}/` },
+    { name: cat.name, url: `${siteUrl}/${cat.slug}/` },
   ],
 });
 
-// TODO: In production, query DB for articles in this category
-// For now, placeholder cards
-const placeholderCards = [
-  {
-    title: `Última hora en ${cat.name}: Lo que nadie te ha contado`,
-    excerpt: 'Descubre los detalles exclusivos que nadie más tiene. La información más relevante del momento.',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC6HCuSZGvOBvnZN6pTp9Mi4B01lO7DB6U-DOY5ed5V5aJn8fV2Dt1Cq6LaTZRrpO7EQITtF8IbjSYyiCNJe1b8zkUYey44UxrKj93KtufequciXOBrTexSlLRluvgIHu490tnfL8txDJH7BgNhF_8Y9Th8XzFlMQlUwlz2vXdRB-O2JEViVwanyX6tZLvFE8tiFPivpFGWV4Q6cIBLZaYyEmCBQsnfJZUWMEFQCYbxRg5_nYJaStVDtQac7ut-FdAD2PPkAPk9mQ',
-    imageAlt: `Noticias de ${cat.name}`,
-    href: '#',
-  },
-  {
-    title: `Top 5: Lo más impactante de la semana en ${cat.name}`,
-    excerpt: 'Un resumen con lo mejor y lo más controversial de los últimos siete días.',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC3_etRDDEMcPB1RnVbdDPPtL2yhd9DI1Iw2a2boiDUkwUVERnWyTiEvEdvmwO7BqimGfmyeuaoEeFWcuQyBGs0LCQdiVey0mqxoJ8wmJbRehjPoOcLoiqOO4fTR9JV8lLkgxBVjWydQNFibrAcwfUsUqoI_t4RFZ-9HHjdLXK9m8HMWBSnYMKzAmdqkCfHzIa3G0FOv_HBMTz141IA-1LwTg-69uERMCgpePXEuO2c6HIcQttlg1ioe6oF1A8ezC9feTjSe3jDdg',
-    imageAlt: `Lo más impactante en ${cat.name}`,
-    href: '#',
-  },
-  {
-    title: `Entrevista exclusiva: Las confesiones que estremecen ${cat.name}`,
-    excerpt: 'Una conversación sin censura con las figuras más polémicas del momento.',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDEYMjWJ6EHNyEhBsysn4JJlq0IHAHrADkBZ2CB8Mc8NDekXd3Sdh7l5w4tH3f5oF58Mcgs6XBl94HfWrYdMleHNluKT_HWbxMt7ZITNC-6qjo3QqLIkL2Eou3KvgBhfAjHJ7lAuFpKutgTW3Ahu_Ji7VH3eX8oa2xPWBBZMixGi6qLrtf2We65cXel5_NCLscyAldvO5GgK1bH1ECT5jqnrbSqIzibnMzKbXxF4qo8_0Xn5On711UdPkYxBtdczz1nJRwdm4VJSQ',
-    imageAlt: `Entrevista exclusiva de ${cat.name}`,
-    href: '#',
-  },
-];
+const rows = await db
+  .select({
+    id: articles.id,
+    slug: articles.slug,
+    title: articles.title,
+    metaDescription: articles.metaDescription,
+    ogImage: articles.ogImage,
+    publishedAt: articles.publishedAt,
+  })
+  .from(articles)
+  .where(and(eq(articles.status, 'published'), eq(articles.categoryId, cat.id)))
+  .orderBy(desc(articles.publishedAt))
+  .limit(48);
+
+const cards = rows.map((a) => ({
+  title: a.title,
+  excerpt: a.metaDescription,
+  image: a.ogImage || DEFAULT_IMAGE,
+  imageAlt: a.title,
+  href: `/${a.slug}`,
+}));
 ---
 
 <BaseLayout seo={seo} jsonLd={jsonLd}>
@@ -130,45 +112,45 @@ const placeholderCards = [
         margin-top: 0.75rem;
         max-width: 40rem;
       ">
-        {cat.description}
+        {description}
       </p>
     </div>
 
-    <!-- Articles Grid -->
-    <div style="
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 2rem;
-      margin-bottom: 3rem;
-    ">
-      {placeholderCards.map((card) => (
-        <ArticleCard
-          title={card.title}
-          excerpt={card.excerpt}
-          image={card.image}
-          imageAlt={card.imageAlt}
-          category={cat.name.toUpperCase()}
-          href={card.href}
-        />
-      ))}
-    </div>
-
-    <!-- Empty state message -->
-    <div style="
-      text-align: center;
-      padding: 3rem 1rem;
-      border: 2px dashed var(--color-outline-variant);
-      border-radius: 0.5rem;
-      color: var(--color-on-surface-variant);
-    ">
-      <span class="material-symbols-outlined" style="font-size: 3rem; opacity: 0.4;">article</span>
-      <p class="font-headline" style="font-weight: 700; margin-top: 1rem;">
-        Más artículos próximamente
-      </p>
-      <p style="font-size: 0.875rem; margin-top: 0.5rem;">
-        Los artículos publicados en esta categoría aparecerán aquí automáticamente.
-      </p>
-    </div>
+    {cards.length > 0 ? (
+      <div style="
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 2rem;
+        margin-bottom: 3rem;
+      ">
+        {cards.map((card) => (
+          <ArticleCard
+            title={card.title}
+            excerpt={card.excerpt}
+            image={card.image}
+            imageAlt={card.imageAlt}
+            category={cat.name.toUpperCase()}
+            href={card.href}
+          />
+        ))}
+      </div>
+    ) : (
+      <div style="
+        text-align: center;
+        padding: 3rem 1rem;
+        border: 2px dashed var(--color-outline-variant);
+        border-radius: 0.5rem;
+        color: var(--color-on-surface-variant);
+      ">
+        <span class="material-symbols-outlined" style="font-size: 3rem; opacity: 0.4;">article</span>
+        <p class="font-headline" style="font-weight: 700; margin-top: 1rem;">
+          Aún no hay artículos en {cat.name}
+        </p>
+        <p style="font-size: 0.875rem; margin-top: 0.5rem;">
+          Los artículos publicados en esta categoría aparecerán aquí automáticamente.
+        </p>
+      </div>
+    )}
 
   </main>
 </BaseLayout>

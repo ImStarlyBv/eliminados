@@ -1,19 +1,40 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import ArticleCard from '@/components/ArticleCard.astro';
 import { buildJsonLd } from '@/lib/seo';
+import { db } from '@/lib/db';
+import { DEFAULT_IMAGE } from '@/lib/defaults';
+import { articles, authors, categories } from '@/db/schema';
+import { eq, and, desc } from 'drizzle-orm';
 
 const { slug } = Astro.params;
+const authorSlug = slug || '';
 const siteUrl = import.meta.env.SITE || 'https://eliminados.online';
 
-// Display name from slug
-const authorName = (slug || '')
-  .replace(/-/g, ' ')
-  .replace(/\b\w/g, (c) => c.toUpperCase());
+const [author] = await db
+  .select({
+    id: authors.id,
+    slug: authors.slug,
+    name: authors.name,
+    bio: authors.bio,
+    avatarUrl: authors.avatarUrl,
+  })
+  .from(authors)
+  .where(eq(authors.slug, authorSlug))
+  .limit(1);
+
+if (!author) {
+  return new Response('Not Found', { status: 404 });
+}
+
+const bio =
+  author.bio ||
+  'Periodista y creador de contenido en ELIMINADOS. Cubriendo el entretenimiento dominicano 24/7.';
 
 const seo = {
-  title: `${authorName} — Autor en ELIMINADOS`,
-  description: `Todos los artículos escritos por ${authorName} en ELIMINADOS. Noticias, opiniones y exclusivas.`,
-  canonicalUrl: `${siteUrl}/autor/${slug}/`,
+  title: `${author.name} — Autor en ELIMINADOS`,
+  description: `Todos los artículos escritos por ${author.name} en ELIMINADOS. Noticias, opiniones y exclusivas.`,
+  canonicalUrl: `${siteUrl}/autor/${author.slug}/`,
   type: 'website' as const,
 };
 
@@ -26,11 +47,36 @@ const jsonLd = buildJsonLd({
   siteUrl,
   breadcrumbs: [
     { name: 'Inicio', url: siteUrl },
-    { name: authorName, url: `${siteUrl}/autor/${slug}/` },
+    { name: author.name, url: `${siteUrl}/autor/${author.slug}/` },
   ],
 });
 
-// TODO: Query DB for author profile + their articles
+const rows = await db
+  .select({
+    id: articles.id,
+    slug: articles.slug,
+    title: articles.title,
+    metaDescription: articles.metaDescription,
+    ogImage: articles.ogImage,
+    publishedAt: articles.publishedAt,
+    categoryName: categories.name,
+  })
+  .from(articles)
+  .leftJoin(categories, eq(articles.categoryId, categories.id))
+  .where(
+    and(eq(articles.status, 'published'), eq(articles.authorId, author.id))
+  )
+  .orderBy(desc(articles.publishedAt))
+  .limit(48);
+
+const cards = rows.map((a) => ({
+  title: a.title,
+  excerpt: a.metaDescription,
+  image: a.ogImage || DEFAULT_IMAGE,
+  imageAlt: a.title,
+  category: (a.categoryName || 'NOTICIAS').toUpperCase(),
+  href: `/${a.slug}`,
+}));
 ---
 
 <BaseLayout seo={seo} jsonLd={jsonLd}>
@@ -50,7 +96,7 @@ const jsonLd = buildJsonLd({
     ">
       <a href="/" style="text-decoration: none; color: inherit;">INICIO</a>
       <span class="material-symbols-outlined" style="font-size: 10px;">chevron_right</span>
-      <span style="color: var(--color-on-surface);">{authorName.toUpperCase()}</span>
+      <span style="color: var(--color-on-surface);">{author.name.toUpperCase()}</span>
     </nav>
 
     <!-- Author Profile -->
@@ -64,27 +110,39 @@ const jsonLd = buildJsonLd({
       background: var(--color-surface-container-low);
       border-radius: 1rem;
     ">
-      <!-- Avatar placeholder -->
-      <div style="
-        width: 6rem;
-        height: 6rem;
-        border-radius: 9999px;
-        background: var(--color-surface-container-highest);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 0 0 4px white;
-      ">
-        <span class="material-symbols-outlined" style="font-size: 2.5rem; color: var(--color-on-surface-variant);">person</span>
-      </div>
+      {author.avatarUrl ? (
+        <div style="
+          width: 6rem;
+          height: 6rem;
+          border-radius: 9999px;
+          overflow: hidden;
+          margin-bottom: 1.5rem;
+          box-shadow: 0 0 0 4px white;
+        ">
+          <img src={author.avatarUrl} alt={author.name} style="width: 100%; height: 100%; object-fit: cover;" />
+        </div>
+      ) : (
+        <div style="
+          width: 6rem;
+          height: 6rem;
+          border-radius: 9999px;
+          background: var(--color-surface-container-highest);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 1.5rem;
+          box-shadow: 0 0 0 4px white;
+        ">
+          <span class="material-symbols-outlined" style="font-size: 2.5rem; color: var(--color-on-surface-variant);">person</span>
+        </div>
+      )}
 
       <h1 class="font-headline" style="
         font-size: 2rem;
         font-weight: 900;
         margin-bottom: 0.5rem;
       ">
-        {authorName}
+        {author.name}
       </h1>
       <p style="
         color: var(--color-on-surface-variant);
@@ -92,11 +150,10 @@ const jsonLd = buildJsonLd({
         font-size: 0.875rem;
         line-height: 1.6;
       ">
-        Periodista y creador de contenido en ELIMINADOS. Cubriendo el entretenimiento dominicano 24/7.
+        {bio}
       </p>
     </div>
 
-    <!-- Articles by author — empty state -->
     <h2 class="font-headline" style="
       font-size: 1.5rem;
       font-weight: 900;
@@ -104,24 +161,43 @@ const jsonLd = buildJsonLd({
       letter-spacing: -0.03em;
       margin-bottom: 1.5rem;
     ">
-      Artículos de {authorName}
+      Artículos de {author.name}
     </h2>
 
-    <div style="
-      text-align: center;
-      padding: 3rem 1rem;
-      border: 2px dashed var(--color-outline-variant);
-      border-radius: 0.5rem;
-      color: var(--color-on-surface-variant);
-    ">
-      <span class="material-symbols-outlined" style="font-size: 3rem; opacity: 0.4;">edit_note</span>
-      <p class="font-headline" style="font-weight: 700; margin-top: 1rem;">
-        Artículos próximamente
-      </p>
-      <p style="font-size: 0.875rem; margin-top: 0.5rem;">
-        Los artículos de este autor aparecerán aquí cuando se publiquen.
-      </p>
-    </div>
+    {cards.length > 0 ? (
+      <div style="
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 2rem;
+      ">
+        {cards.map((card) => (
+          <ArticleCard
+            title={card.title}
+            excerpt={card.excerpt}
+            image={card.image}
+            imageAlt={card.imageAlt}
+            category={card.category}
+            href={card.href}
+          />
+        ))}
+      </div>
+    ) : (
+      <div style="
+        text-align: center;
+        padding: 3rem 1rem;
+        border: 2px dashed var(--color-outline-variant);
+        border-radius: 0.5rem;
+        color: var(--color-on-surface-variant);
+      ">
+        <span class="material-symbols-outlined" style="font-size: 3rem; opacity: 0.4;">edit_note</span>
+        <p class="font-headline" style="font-weight: 700; margin-top: 1rem;">
+          Este autor aún no tiene artículos publicados
+        </p>
+        <p style="font-size: 0.875rem; margin-top: 0.5rem;">
+          Los artículos de este autor aparecerán aquí cuando se publiquen.
+        </p>
+      </div>
+    )}
 
   </main>
 </BaseLayout>
