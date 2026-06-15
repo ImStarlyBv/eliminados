@@ -52,7 +52,10 @@ export const articles = pgTable(
     wordCount: integer('word_count').notNull().default(0),
     lang: text('lang').notNull().default('es'),
     publishedAt: timestamp('published_at'),
-    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     authorId: text('author_id').references(() => authors.id),
     categoryId: text('category_id').references(() => categories.id),

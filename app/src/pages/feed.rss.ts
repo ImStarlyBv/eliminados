@@ -2,8 +2,8 @@ import type { APIRoute } from 'astro';
 import { getFeedItems, buildRssXml, rssResponse } from '@/lib/feed';
 
 /**
- * RSS feed — site-wide, most recent 50 articles.
- * Cheap traffic, easy discoverability. See also /feed.rss (same content).
+ * /feed.rss — alias of /rss.xml (identical content).
+ * Provided because many readers/aggregators look for a `feed.rss` path.
  */
 export const GET: APIRoute = async ({ site }) => {
   const siteUrl =
@@ -12,5 +12,5 @@ export const GET: APIRoute = async ({ site }) => {
     'https://eliminados.online';
 
   const items = await getFeedItems(siteUrl);
-  return rssResponse(buildRssXml(siteUrl, items, '/rss.xml'));
+  return rssResponse(buildRssXml(siteUrl, items, '/feed.rss'));
 };
