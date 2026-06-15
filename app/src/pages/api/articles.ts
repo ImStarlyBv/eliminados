@@ -105,7 +105,9 @@ export const POST: APIRoute = async ({ request }) => {
 
   try {
     const { db } = await import('@/lib/db');
-    const { articles, categories, authors } = await import('@/db/schema');
+    const { articles, categories, authors, tags, articleTags } = await import(
+      '@/db/schema'
+    );
 
     let categoryId: string | null = null;
     const [cat] = await db
@@ -141,6 +143,45 @@ export const POST: APIRoute = async ({ request }) => {
       categoryId,
       status,
     });
+
+    // --- Tags: upsert each tag, then link via article_tags ---
+    if (Array.isArray(body.tags) && body.tags.length > 0) {
+      const seen = new Set<string>();
+      for (const raw of body.tags) {
+        if (typeof raw !== 'string') continue;
+        const name = raw.trim();
+        if (!name) continue;
+        const tagSlug = slugify(name);
+        if (!tagSlug || seen.has(tagSlug)) continue;
+        seen.add(tagSlug);
+
+        let [tag] = await db
+          .select({ id: tags.id })
+          .from(tags)
+          .where(eq(tags.slug, tagSlug))
+          .limit(1);
+
+        if (!tag) {
+          const tagId = createId();
+          await db
+            .insert(tags)
+            .values({ id: tagId, slug: tagSlug, name })
+            .onConflictDoNothing({ target: tags.slug });
+          [tag] = await db
+            .select({ id: tags.id })
+            .from(tags)
+            .where(eq(tags.slug, tagSlug))
+            .limit(1);
+        }
+
+        if (tag) {
+          await db
+            .insert(articleTags)
+            .values({ articleId, tagId: tag.id })
+            .onConflictDoNothing();
+        }
+      }
+    }
 
     import('@/lib/indexing')
       .then(({ runIndexingPipeline }) => {
