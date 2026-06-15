@@ -17,15 +17,39 @@ const [tag] = await db
   .where(eq(tags.slug, tagSlug))
   .limit(1);
 
-const tagName =
-  tag?.name ||
-  tagSlug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+// Unknown tag → real 404. Prevents indexing of soft-404 / infinite empty
+// /tag/<anything> URLs.
+if (!tag) {
+  return new Response('Not Found', { status: 404 });
+}
+
+const tagName = tag.name;
+
+const rows = await db
+  .select({
+    id: articles.id,
+    slug: articles.slug,
+    title: articles.title,
+    metaDescription: articles.metaDescription,
+    ogImage: articles.ogImage,
+    publishedAt: articles.publishedAt,
+    categoryName: categories.name,
+  })
+  .from(articleTags)
+  .innerJoin(articles, eq(articleTags.articleId, articles.id))
+  .leftJoin(categories, eq(articles.categoryId, categories.id))
+  .where(and(eq(articleTags.tagId, tag.id), eq(articles.status, 'published')))
+  .orderBy(desc(articles.publishedAt))
+  .limit(48);
 
 const seo = {
   title: `#${tagName} — ELIMINADOS | Noticias de Entretenimiento`,
   description: `Todas las noticias etiquetadas con #${tagName}. Lo más reciente y relevante en ELIMINADOS.`,
   canonicalUrl: `${siteUrl}/tag/${tagSlug}/`,
   type: 'website' as const,
+  // Tag exists but has no published articles yet → keep it out of the index
+  // until it has real content (avoids thin/empty section pages ranking).
+  noindex: rows.length === 0,
 };
 
 const jsonLd = buildJsonLd({
@@ -37,31 +61,9 @@ const jsonLd = buildJsonLd({
   siteUrl,
   breadcrumbs: [
     { name: 'Inicio', url: siteUrl },
-    { name: 'Tags', url: `${siteUrl}/tag/` },
     { name: `#${tagName}`, url: `${siteUrl}/tag/${tagSlug}/` },
   ],
 });
-
-const rows = tag
-  ? await db
-      .select({
-        id: articles.id,
-        slug: articles.slug,
-        title: articles.title,
-        metaDescription: articles.metaDescription,
-        ogImage: articles.ogImage,
-        publishedAt: articles.publishedAt,
-        categoryName: categories.name,
-      })
-      .from(articleTags)
-      .innerJoin(articles, eq(articleTags.articleId, articles.id))
-      .leftJoin(categories, eq(articles.categoryId, categories.id))
-      .where(
-        and(eq(articleTags.tagId, tag.id), eq(articles.status, 'published'))
-      )
-      .orderBy(desc(articles.publishedAt))
-      .limit(48)
-  : [];
 
 const cards = rows.map((a) => ({
   title: a.title,

@@ -14,6 +14,8 @@ export interface SeoData {
   authorName?: string;
   section?: string;
   tags?: string[];
+  /** When true, emit <meta name="robots" content="noindex, follow"> */
+  noindex?: boolean;
 }
 
 export function buildJsonLd(data: {

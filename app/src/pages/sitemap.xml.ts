@@ -33,12 +33,15 @@ export const GET: APIRoute = async ({ site }) => {
 
   // --- Dynamic articles from DB ---
   let articleEntries: { loc: string; lastmod: string; priority: string }[] = [];
+  let tagEntries: { loc: string; lastmod: string; priority: string }[] = [];
   let globalLastmod: Date | null = null;
   const categoryLastmod: Record<string, Date> = {};
 
   try {
     const { db } = await import('@/lib/db');
-    const { articles, categories } = await import('@/db/schema');
+    const { articles, categories, tags, articleTags } = await import(
+      '@/db/schema'
+    );
     const { eq, desc } = await import('drizzle-orm');
 
     const publishedArticles = await db
@@ -67,6 +70,32 @@ export const GET: APIRoute = async ({ site }) => {
       lastmod: (a.updatedAt || a.publishedAt || new Date()).toISOString(),
       priority: '0.9',
     }));
+
+    // Tag (section) pages that have at least one published article.
+    // Trailing slash matches the tag page canonical to avoid duplicates.
+    const taggedRows = await db
+      .select({
+        tagSlug: tags.slug,
+        updatedAt: articles.updatedAt,
+        publishedAt: articles.publishedAt,
+      })
+      .from(tags)
+      .innerJoin(articleTags, eq(articleTags.tagId, tags.id))
+      .innerJoin(articles, eq(articleTags.articleId, articles.id))
+      .where(eq(articles.status, 'published'));
+
+    const tagLastmod: Record<string, Date> = {};
+    for (const t of taggedRows) {
+      const lm = t.updatedAt || t.publishedAt || new Date();
+      const cur = tagLastmod[t.tagSlug];
+      if (!cur || lm > cur) tagLastmod[t.tagSlug] = lm;
+    }
+
+    tagEntries = Object.entries(tagLastmod).map(([slug, lm]) => ({
+      loc: `/tag/${slug}/`,
+      lastmod: lm.toISOString(),
+      priority: '0.7',
+    }));
   } catch {
     // DB not connected yet — sitemap will only have static pages
   }
@@ -88,6 +117,14 @@ export const GET: APIRoute = async ({ site }) => {
     <priority>${p.priority}</priority>
   </url>`;
     }),
+    ...tagEntries.map(
+      (t) => `  <url>
+    <loc>${siteUrl}${t.loc}</loc>
+    <lastmod>${t.lastmod}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>${t.priority}</priority>
+  </url>`
+    ),
     ...articleEntries.map(
       (a) => `  <url>
     <loc>${siteUrl}${a.loc}</loc>

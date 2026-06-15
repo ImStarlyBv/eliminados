@@ -30,6 +30,7 @@ const formattedDate = dateFormatter.format(today);
   <title>{seo.title}</title>
   <meta name="description" content={seo.description} />
   <link rel="canonical" href={seo.canonicalUrl} />
+  {seo.noindex && <meta name="robots" content="noindex, follow" />}
 
   <!-- RSS feed -->
   <link rel="alternate" type="application/rss+xml" title="ELIMINADOS — RSS" href={`${siteUrl}/feed.rss`} />
