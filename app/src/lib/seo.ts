@@ -87,28 +87,55 @@ export function buildJsonLd(data: {
   return scripts;
 }
 
-/** Generate a dated slug: /yyyymmdd/keyword-slug_shortid.html */
-export function generateArticleSlug(
-  title: string,
-  date: Date,
-  shortId: string
-): string {
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const dd = String(date.getDate()).padStart(2, '0');
-  const dateStr = `${yyyy}${mm}${dd}`;
-
-  const slug = title
+/**
+ * Slugify a string: lowercase, accent-stripped, hyphenated, capped at 60 chars.
+ * Shared by both the article-slug builder and tag/category slugs.
+ */
+export function slugify(input: string): string {
+  return input
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '') // remove accents
     .replace(/[^a-z0-9\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
     .slice(0, 60)
     .replace(/-$/, '');
+}
 
-  return `${dateStr}/${slug}_${shortId}.html`;
+/**
+ * Human-readable article slug: `<category>/<title-slug>`.
+ *
+ * No date directory, no random hash, no `.html` extension \u2014 just the section
+ * folder plus a keyword-rich slug (e.g. `reality/la-isla-de-alofoke-...`).
+ * Uniqueness is NOT guaranteed here; the caller resolves collisions via
+ * {@link resolveUniqueSlug} backed by the DB unique constraint on
+ * `articles.slug`.
+ */
+export function generateArticleSlug(title: string, categorySlug: string): string {
+  return `${categorySlug}/${slugify(title)}`;
+}
+
+/**
+ * Resolve a unique slug. Returns `desired` if free; otherwise appends a short,
+ * readable numeric suffix to the final path segment (`...-rd-2`, `...-rd-3`, \u2026)
+ * \u2014 replacing the old random-hash de-duplicator with something shareable.
+ *
+ * `exists` is an async predicate (typically a DB lookup) returning whether a
+ * slug is already taken.
+ */
+export async function resolveUniqueSlug(
+  desired: string,
+  exists: (slug: string) => Promise<boolean>
+): Promise<string> {
+  if (!(await exists(desired))) return desired;
+  for (let n = 2; n < 1000; n++) {
+    const candidate = `${desired}-${n}`;
+    if (!(await exists(candidate))) return candidate;
+  }
+  // Pathologically unlikely \u2014 fall back to a timestamp suffix.
+  return `${desired}-${Date.now()}`;
 }
 
 /** Strip HTML tags to get plain text for word count / FTS */

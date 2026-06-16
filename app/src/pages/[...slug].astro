@@ -6,10 +6,20 @@ import { db } from '@/lib/db';
 import { articles, authors, categories, articleTags, tags } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
-// Route: /[date]/[slug].html  e.g. /20260416/laura-planeta-alofoke_9f2ab3.html
-const { date, slug } = Astro.params;
+// Catch-all article route. Serves articles by their full stored slug, which is
+// now human-readable: `/<category>/<title-slug>` (e.g.
+// /reality/la-isla-de-alofoke-todo-sobre-el-nuevo-reality-de-rd).
+// Legacy dated slugs (`/yyyymmdd/...html`) still resolve here too, since the
+// lookup is a straight match on articles.slug. More specific routes
+// (/tag/*, /autor/*, /[category], /api/*, sitemaps, feeds) take priority over
+// this spread route, so it only handles paths nothing else claims.
+const { slug } = Astro.params;
+const fullSlugPath = slug ?? '';
 const siteUrl = import.meta.env.SITE || 'https://eliminados.online';
-const fullSlugPath = `${date}/${slug}`;
+
+if (!fullSlugPath) {
+  return new Response('Not Found', { status: 404 });
+}
 
 const [row] = await db
   .select({

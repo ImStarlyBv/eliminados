@@ -19,6 +19,7 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/package.json ./
 COPY --from=build /app/start.mjs ./start.mjs
+COPY --from=build /app/scripts ./scripts
 COPY --from=build /app/src/db/migrations ./migrations
 EXPOSE 4321
 CMD ["node", "./start.mjs"]

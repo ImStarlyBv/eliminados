@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { createId } from '@paralleldrive/cuid2';
 import { eq } from 'drizzle-orm';
+import { resolveUniqueSlug } from '@/lib/seo';
 
 const SITE_URL = process.env.SITE_URL || import.meta.env.SITE_URL || 'https://eliminados.online';
 
@@ -91,12 +92,12 @@ export const POST: APIRoute = async ({ request }) => {
 
   const articleId = createId();
   const now = new Date();
-  const yyyy = String(now.getUTCFullYear());
-  const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
-  const dd = String(now.getUTCDate()).padStart(2, '0');
-  const dateStr = `${yyyy}${mm}${dd}`;
   const baseSlug = slugify(body.title) || articleId.slice(0, 12);
-  const articleSlug = `${dateStr}/${baseSlug}_${articleId}.html`;
+  // Human-readable slug: `<category>/<title-slug>` — no date dir, no random
+  // hash, no `.html`. Uniqueness is resolved against the DB below (collisions
+  // get a readable `-2`/`-3` suffix instead of a hash).
+  const desiredSlug = `${slugify(body.category_slug)}/${baseSlug}`;
+  let articleSlug = desiredSlug;
 
   const bodyText = htmlToText(body.body_html);
   const wc = wordCount(bodyText);
@@ -108,6 +109,16 @@ export const POST: APIRoute = async ({ request }) => {
     const { articles, categories, authors, tags, articleTags } = await import(
       '@/db/schema'
     );
+
+    // Resolve slug uniqueness against existing rows (replaces the old hash).
+    articleSlug = await resolveUniqueSlug(desiredSlug, async (candidate) => {
+      const [hit] = await db
+        .select({ id: articles.id })
+        .from(articles)
+        .where(eq(articles.slug, candidate))
+        .limit(1);
+      return !!hit;
+    });
 
     let categoryId: string | null = null;
     const [cat] = await db
