@@ -3,6 +3,10 @@ FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci --ignore-scripts
+# The lockfile is generated on the dev machine (often win32), so it lacks the
+# linux-musl sharp binary that node:22-alpine needs. Force-install it here so
+# image optimization works in production instead of silently falling back.
+RUN npm install --no-save --include=optional --os=linux --libc=musl --cpu=x64 sharp
 
 # --- Stage 2: Build ---
 FROM node:22-alpine AS build

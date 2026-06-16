@@ -58,14 +58,32 @@ const formattedDate = dateFormatter.format(today);
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  {/*
+    Text fonts: trimmed to the weights actually used (no italics, no Work Sans
+    request — it stays as a CSS fallback). Loaded async via media=print swap so
+    the stylesheet stops blocking first render; display=swap shows fallback text
+    immediately so the LCP headline paints without waiting on the webfont.
+    Material Symbols: subset to the 15 icons in use with a single fixed axis
+    instead of the full variable font (was ~1 MB → a few KB).
+  */}
   <link
-    href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,700;0,800;0,900;1,700;1,800;1,900&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Work+Sans:wght@400;500;600&display=swap"
     rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=DM+Sans:wght@400;500;700&display=swap"
+    media="print"
+    onload="this.media='all'"
   />
   <link
-    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
     rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=article,bolt,calendar_today,camera,chat,chevron_right,edit_note,label,link,person,play_circle,public,search,share,wb_sunny&display=block"
+    media="print"
+    onload="this.media='all'"
   />
+  <noscript>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=DM+Sans:wght@400;500;700&display=swap"
+    />
+  </noscript>
 
   <!-- JSON-LD -->
   {jsonLd.map((ld) => (

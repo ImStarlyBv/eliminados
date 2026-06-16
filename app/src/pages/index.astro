@@ -3,6 +3,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
 import ArticleCard from '@/components/ArticleCard.astro';
 import TrendingSidebar from '@/components/TrendingSidebar.astro';
 import { buildJsonLd } from '@/lib/seo';
+import { img, srcset } from '@/lib/img';
 import { db } from '@/lib/db';
 import { DEFAULT_IMAGE, DEFAULT_AVATAR } from '@/lib/defaults';
 import { articles, categories, authors, tags, articleTags } from '@/db/schema';
@@ -165,8 +166,14 @@ const trendingTags = trendingTagRows.map((t) => ({
             aspect-ratio: 16/9;
           ">
             <img
-              src={heroArticle.image}
+              src={img(heroArticle.image, 1080)}
+              srcset={srcset(heroArticle.image, [640, 800, 1080, 1440])}
+              sizes="(min-width: 1024px) 66vw, 100vw"
               alt={heroArticle.imageAlt}
+              width="1280"
+              height="720"
+              fetchpriority="high"
+              decoding="async"
               style="
                 width: 100%;
                 height: 100%;
@@ -425,9 +432,14 @@ const trendingTags = trendingTagRows.map((t) => ({
             <a href={card.href} style="text-decoration: none; color: inherit; display: block;">
               <div style="position: relative; margin-bottom: 1rem;">
                 <img
-                  src={card.image}
+                  src={img(card.image, 480)}
+                  srcset={srcset(card.image, [320, 480, 640, 800])}
+                  sizes="(min-width: 768px) 25vw, 100vw"
                   alt={card.imageAlt}
+                  width="480"
+                  height="256"
                   loading="lazy"
+                  decoding="async"
                   style="
                     width: 100%;
                     height: 16rem;

@@ -2,6 +2,7 @@
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import TrendingSidebar from '@/components/TrendingSidebar.astro';
 import { buildJsonLd } from '@/lib/seo';
+import { img, srcset } from '@/lib/img';
 import { db } from '@/lib/db';
 import { articles, authors, categories, articleTags, tags } from '@/db/schema';
 import { eq } from 'drizzle-orm';
@@ -288,8 +289,14 @@ const dateFormatter = new Intl.DateTimeFormat('es-DO', {
           box-shadow: 0 20px 40px rgba(49, 46, 41, 0.06);
         ">
           <img
-            src={article.ogImage}
+            src={img(article.ogImage, 1080)}
+            srcset={srcset(article.ogImage, [640, 800, 1080, 1440])}
+            sizes="(min-width: 1024px) 800px, 100vw"
             alt={article.title}
+            width="1280"
+            height="720"
+            fetchpriority="high"
+            decoding="async"
             style="width: 100%; height: 100%; object-fit: cover;"
           />
         </div>
