@@ -68,14 +68,23 @@ export async function runIndexingPipeline(articleId: string) {
       details: { linksAdded, relatedFound: relatedArticles.length, durationMs },
     });
 
-    // 4. WebSub push — notify the hub that the feeds changed so Google and
-    //    other subscribers get this new article almost instantly.
+    const siteUrl = (process.env.SITE_URL || 'https://eliminados.online').replace(/\/$/, '');
+
+    // 4. WebSub push — notify the hub that the feeds changed so feed
+    //    subscribers get this new article almost instantly.
     try {
-      const siteUrl = (process.env.SITE_URL || 'https://eliminados.online').replace(/\/$/, '');
       const { pingWebSub } = await import('@/lib/feed');
       await pingWebSub([`${siteUrl}/rss.xml`, `${siteUrl}/feed.rss`]);
     } catch (e) {
       console.error('WebSub ping error:', e);
+    }
+
+    // 5. IndexNow — instant submission to Bing/Yandex/etc. for this article.
+    try {
+      const { submitIndexNow } = await import('@/lib/indexnow');
+      await submitIndexNow([`${siteUrl}/${article.slug}`]);
+    } catch (e) {
+      console.error('IndexNow ping error:', e);
     }
 
   } catch (error) {
