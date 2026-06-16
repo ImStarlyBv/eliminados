@@ -8,6 +8,8 @@ Allow: /
 
 Sitemap: ${siteUrl}/sitemap.xml
 Sitemap: ${siteUrl}/news-sitemap.xml
+Sitemap: ${siteUrl}/rss.xml
+Sitemap: ${siteUrl}/feed.rss
 `;
 
   return new Response(body, {
