@@ -54,8 +54,11 @@ export const POST: APIRoute = async ({ request }) => {
     const targetPath = path.join(targetDir, filename);
     await fs.writeFile(targetPath, buffer);
     
-    // The public URL to the file
-    const siteUrl = import.meta.env.SITE || process.env.SITE_URL || 'https://eliminados.online';
+    // The public URL to the file. Prefer SITE_URL env (set in docker-compose)
+    // and normalize to avoid a malformed base like "https:/host".
+    const rawSite =
+      process.env.SITE_URL || import.meta.env.SITE || 'https://eliminados.online';
+    const siteUrl = rawSite.replace(/\/+$/, '').replace(/^(https?:)\/?\/?/, '$1//');
     const publicUrl = `${siteUrl}/media/${relativeTargetDir}/${filename}`;
 
     return new Response(
